@@ -16,12 +16,14 @@ from kivymd.app import MDApp
 from kivymd.toast import toast
 from kivymd.uix.list import OneLineListItem, TwoLineListItem
 from kivymd.uix.dialog import MDDialog
+from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.button import MDFlatButton, MDRectangleFlatButton, MDIconButton, MDFloatingActionButton
 from kivymd.uix.menu import MDDropdownMenu
 from kivy.lang.builder import Builder
 from kivy.uix.screenmanager import Screen, ScreenManager
 from kivy.core.window import Window
 from kivymd.uix.toolbar import MDToolbar
+from kivymd.uix.expansionpanel import MDExpansionPanel, MDExpansionPanelTwoLine
 from kivymd.uix.label import MDLabel, MDIcon
 from kivymd.uix.gridlayout import MDGridLayout
 import kivymd
@@ -89,11 +91,23 @@ Builder.load_file("src/app.kv")
 sm = ScreenManager()
 
 
+class MeaningsPanelContent(MDBoxLayout):
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+        menu_instance = args[0]
+        for meaning in args[1]['more_words']:
+            # root.ids.meanings_screen.ids.meanings_panel
+            self.add_widget(OneLineListItem(
+                text=meaning,
+                on_release=lambda x, y=args[1]: menu_instance.confirm_generation(y)
+            ))
+
+
 class MenuScreen(Screen):
     def __init__(self, **kwargs):
         # call grid layout constructor
         super(MenuScreen, self).__init__(**kwargs)
-        self.menu = None
+        self.dropdown_menu = None
         self.dialog = None
         self.tld = 'com'
         self.timestamp = dt.now().strftime("%Y%m%d%H%M%S")
@@ -154,8 +168,8 @@ class MenuScreen(Screen):
         # self.add_widget(self.submit)
 
     def open_dropdown(self, dict_dropdown=False):
-        if self.menu is not None:
-            self.menu.dismiss()
+        if self.dropdown_menu is not None:
+            self.dropdown_menu.dismiss()
 
         if dict_dropdown:
             self.menu_list = [
@@ -218,12 +232,12 @@ class MenuScreen(Screen):
                     "on_release": lambda x="Collocation": self.find_idiom()
                 }
             ]
-        self.menu = MDDropdownMenu(
+        self.dropdown_menu = MDDropdownMenu(
             caller=self.ids.dict_dropdown,
             items=self.menu_list,
             width_mult=4
         )
-        self.menu.open()
+        self.dropdown_menu.open()
 
     def find_word(self):
         self.open_dropdown()
@@ -362,18 +376,29 @@ class MenuScreen(Screen):
 
             # self.dialog_popup("Processing...", "Please wait. Generating Flashcard..")
             # print(CONTAINER['meanings'])
-            meanings_screen = self.manager.get_screen("meanings")
+            meanings_screen = self.manager.get_screen("meanings_screen")
             for meaning in CONTAINER['meanings']:
                 word = meaning['word']
                 guide_word = meaning['gw']
                 part_of_speech = meaning['pos']
-                meanings_screen.ids.meanings_container.add_widget(
-                    TwoLineListItem(
-                        text=f"{word} {guide_word}",
-                        secondary_text=f"{part_of_speech}",
-                        on_release=lambda x, y=meaning: self.confirm_generation(y)
+                if not meaning['more_words']:
+                    meanings_screen.ids.meanings_container.add_widget(
+                        TwoLineListItem(
+                            text=f"{word} {guide_word}",
+                            secondary_text=f"{part_of_speech}",
+                            on_release=lambda x, y=meaning: self.confirm_generation(y)
+                        )
                     )
-                )
+                else:
+                    meanings_screen.ids.meanings_container.add_widget(
+                        MDExpansionPanel(
+                            content=MeaningsPanelContent(self, meaning),
+                            panel_cls=MDExpansionPanelTwoLine(
+                                text=f"{' '*4}{word} {guide_word}",
+                                secondary_text=f"{' '*4}{part_of_speech}"
+                            )
+                        )
+                    )
             sm.switch_to(meanings_screen)
         else:
             self.toast("Invalid URL. Please try again")
@@ -422,8 +447,8 @@ class MeaningsScreen(Screen):
 
 class MyApp(MDApp):
     def build(self):
-        sm.add_widget(MenuScreen(name='menu'))
-        sm.add_widget(MeaningsScreen(name='meanings'))
+        sm.add_widget(MenuScreen(name='menu_screen'))
+        sm.add_widget(MeaningsScreen(name='meanings_screen'))
         self.theme_cls.primary_palette = "Blue"
         self.theme_cls.theme_style = "Dark"
         self.theme_cls.material_style = "M3"

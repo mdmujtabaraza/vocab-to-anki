@@ -4,6 +4,14 @@
     size_hint: None, None
     size: dp(48), dp(48)
 
+# ScreenManager:
+#     MenuScreen:
+#         name: "menu_screen"
+#         id: menu_screen
+#     MeaningsScreen:
+#         name: "meanings_screen"
+#         id: meanings_screen
+
 # MDLabel:
 #     id: url_label
 #     text: 'Vocab to Anki'
@@ -22,10 +30,10 @@
             right_action_items: [["refresh", lambda x: app.get_running_app().restart()]]
             elevation: 10
         FloatLayout:
-            MDFlatButton:
-                text: "Meanings"
-                pos_hint: {'center_x': .8, 'center_y': .9}
-                on_release: root.manager.current = 'meanings'
+            # MDFlatButton:
+            #     text: "Meanings"
+            #     pos_hint: {'center_x': .8, 'center_y': .9}
+            #     on_release: root.manager.current = 'meanings_screen'
             MDRaisedButton:
                 id: dict_dropdown
                 text: "Browse"
@@ -77,19 +85,9 @@
                 on_release: root.show_data()
 
 
-<SettingsScreen>:
-    name: 'settings'
-    BoxLayout:
-        Button:
-            text: 'My settings button'
-        Button:
-            text: 'Back to menu'
-            # on_press: root.manager.current = 'menu'
-            on_release: app.get_running_app().restart()
-
 <MeaningsScreen>:
     MDBoxLayout:
-        spacing: "12dp"
+        spacing: "10dp"
         pos_hint: {"top": 1}
         adaptive_height: True
         orientation: "vertical"
@@ -103,4 +101,14 @@
         ScrollView:
 
             MDList:
+                # spacing: '20dp'
+                # padding: '25dp'
                 id: meanings_container
+
+<MeaningsPanelContent>
+    # size_hint_y: None
+    # height: self.minimum_height
+    orientation: "vertical"
+    padding: dp(10)
+    spacing: dp(10)
+    adaptive_height: True

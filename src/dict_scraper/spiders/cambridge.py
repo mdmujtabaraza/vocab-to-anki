@@ -126,8 +126,8 @@ class CambridgeSpider(Spider):
     # ]
 
     def parse(self, response):
-        print(response.request.headers.get('Referer', None))
-        print(response.request.headers.get('User-Agent', None))
+        # print(response.request.headers.get('Referer', None))
+        # print(response.request.headers.get('User-Agent', None))
         dictionary_item = CambridgeDictionaryItem()
         tld = getattr(self, 'tld')
         cid = getattr(self, 'cid')
@@ -152,7 +152,7 @@ class CambridgeSpider(Spider):
             if word_type is not None:
                 # print("correct")
                 break
-        print(word_type)
+        # print(word_type)
         meaning = None
         for combinator in combinators:
             if in_dsense:
@@ -163,7 +163,7 @@ class CambridgeSpider(Spider):
             if meaning is not None:
                 # print("correct")
                 break
-        print(meaning)
+        # print(meaning)
         example_sentences = None
         for combinator in combinators:
             if in_dsense:
@@ -174,7 +174,7 @@ class CambridgeSpider(Spider):
             if example_sentences is not None:
                 # print("correct")
                 break
-        print(example_sentences)
+        # print(example_sentences)
         # word = response.css("#cald4-1+ .dpos-h .hw").css("::text").extract_first()
         # word_type = response.css("#cald4-1+ .dpos-h .dpos").css("::text").extract_first()
         # //div[@class="cid" and @id=cid]
@@ -242,19 +242,19 @@ class MeaningsSpider(Spider):
     name = 'meanings'
 
     def __init__(self, q, *args, **kwargs):
-        print(args)
+        # print(args)
         super(MeaningsSpider, self).__init__(*args, **kwargs)
         self.q = q
         self.url = args[0][0]
 
     def start_requests(self):
-        print("start_requests")
+        # print("start_requests")
         word_url = getattr(self, 'url')
         yield Request(word_url, self.parse)
 
     def parse(self, response):
-        print(response.request.headers.get('Referer', None))
-        print(response.request.headers.get('User-Agent', None))
+        # print(response.request.headers.get('Referer', None))
+        # print(response.request.headers.get('User-Agent', None))
         meanings_item = MeaningsItem()
 
         meanings = []
@@ -275,7 +275,7 @@ class MeaningsSpider(Spider):
             parts_of_speech = section.css(".dsense_pos").extract()
             if not parts_of_speech:
                 in_dsense = False
-                print('not in_dsense:', section.css(".cid::attr(id)").extract())
+                # print('not in_dsense:', section.css(".cid::attr(id)").extract())
                 word = section.css(".dphrase-title b").css("::text").extract_first()
                 guide_word = ''
                 part_of_speech = None
@@ -379,17 +379,36 @@ class MeaningsSpider(Spider):
                 #   else meaning found then:
                 #     keep this word
 
+                more_words = []
+                if len(section_id) > 1:
+                    for bid in section_id[1:]:
+                        blue_block_title = ''.join(
+                            section.css(f"#{bid}~ .dphrase_h b").css("::text").extract()
+                        )
+                        if not blue_block_title:
+                            blue_block_meaning = ''.join(
+                                section.css(f"#{bid}~ .dphrase_b .ddef_d").css("::text").extract()
+                            )[:-1]
+                            more_words.append(blue_block_meaning)
+                        else:
+                            more_words.append(blue_block_title)
+                extracted_meanings = section.css(".dsense_b > .ddef_block .ddef_d").css("::text").extract()
+                meanings_list = ''.join(extracted_meanings).split(':')[:-1]
+                if len(meanings_list) > 1:
+                    # print(len(extracted_meanings), meanings_list, len(meanings_list))
+                    more_words.extend(meanings_list)
+
                 # if word has multiple meanings:
                 #   create another instances of those meanings
-                print('in_dsense:', section.css(".cid::attr(id)").extract())
-                b = section.css("b").css("::text").extract()
+                # print('in_dsense:', section.css(".cid::attr(id)").extract())
                 word = section.css(".dsense_hw").css("::text").extract_first()
                 guide_word = '(' + section.css(".dsense_gw span::text").extract_first() + ')'
-                if b:
-                    if guide_word:
-                        guide_word += f" ({' '.join(b)})"
-                    else:
-                        guide_word = f" ({' '.join(b)})"
+                # b = section.css("b").css("::text").extract()
+                # if b:
+                #     if guide_word:
+                #         guide_word += f" ({' '.join(b)})"
+                #     else:
+                #         guide_word = f" ({' '.join(b)})"
                 part_of_speech = section.css(".dsense_pos::text").extract_first()
                 # definitions = section.css(".ddef_d").css("::text").extract()
                 # sentences = section.css(".deg").css("::text").extract()
@@ -398,10 +417,10 @@ class MeaningsSpider(Spider):
             if guide_word is not None:
                 guide_word = re.sub("\s\s+", " ", guide_word)
             meanings.append({'cid': section_id, 'word': word, 'gw': guide_word,
-                             'pos': part_of_speech, 'in_dsense': in_dsense})
+                             'pos': part_of_speech, 'in_dsense': in_dsense, 'more_words': more_words})
             count += 1
 
-        print(count)
+        # print(count)
         meanings_item['meanings'] = meanings
         self.q.put([meanings_item['meanings']])
         yield meanings_item
