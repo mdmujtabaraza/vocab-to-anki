@@ -1,0 +1,15 @@
+name: vocab-to-anki
+channels:
+  - conda-forge
+dependencies:
+  - python=3.8
+  - pip
+  - twisted
+  - scrapy
+  - genanki
+  - validators
+  - gtts
+  - pip:
+      - scrapy-fake-useragent
+      - kivy[full]
+      - kivymd

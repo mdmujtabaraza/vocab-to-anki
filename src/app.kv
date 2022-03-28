@@ -1,0 +1,106 @@
+#:import Clipboard kivy.core.clipboard.Clipboard
+<Check@MDCheckbox>:
+    group: 'accents'
+    size_hint: None, None
+    size: dp(48), dp(48)
+
+# MDLabel:
+#     id: url_label
+#     text: "English Vocabulary Flashcard Maker"
+#     halign: 'center'
+#     theme_text_color: 'Primary'
+#     font_style: 'H6'
+#     pos_hint: {'center_x': 0.5, 'center_y': 0.92}
+
+<MenuScreen>:
+    MDBoxLayout:
+        orientation: "vertical"
+        size: root.width, root.height
+        MDToolbar:
+            title: 'English Vocabulary Flashcard Maker'
+            anchor_title: 'center'
+            right_action_items: [["refresh", lambda x: app.get_running_app().restart()]]
+            elevation: 10
+        FloatLayout:
+            MDFlatButton:
+                text: "Meanings"
+                pos_hint: {'center_x': .8, 'center_y': .9}
+                on_release: root.manager.current = 'meanings'
+            MDRaisedButton:
+                id: dict_dropdown
+                text: "Browse"
+                font_style: 'Button'
+                pos_hint: {"center_x": 0.5, 'center_y': 0.9}
+                on_release: root.open_dropdown(dict_dropdown=True)
+            MDTextField:
+                id: word_input
+                multiline: False
+                hint_text: "Paste word/expression url here"
+                helper_text: "ex: https://dictionary.cambridge.org/dictionary/english/water"
+                helper_text_mode: "on_focus"
+                # icon_right: "clipboard-file"
+                # icon_right_color: app.theme_cls.primary_color
+                pos_hint: {'center_x': 0.4, 'center_y': 0.75}
+                size_hint_x: None
+                width: 240
+            MDIconButton:
+                icon: "clipboard-file"
+                pos_hint: {"center_x": .9, "center_y": .75}
+                on_release: word_input.text = Clipboard.paste()
+            MDLabel:
+                text: "Select Pronunciation Accent"
+                theme_text_color: 'Primary'
+                font_style: 'Body1'
+                halign: 'center'
+                pos_hint: {'center_x': 0.5, 'center_y': 0.62}
+            GridLayout:
+                cols: 2
+                row_force_default: True
+                row_default_height: 40
+                col_force_default: True
+                col_default_width: 180
+                pos_hint: {'center_x': 0.26, 'center_y': 0.5}
+                size_hint: (None, None)
+                MDLabel:
+                    text: "English (United Kingdom)"
+                Check:
+                    on_active: root.checkbox_click(self, self.active, "co.uk")
+                MDLabel:
+                    text: "English (United States)"
+                Check:
+                    active: True
+                    on_active: root.checkbox_click(self, self.active, "com")
+            MDRectangleFlatButton:
+                text: 'Generate Anki Flashcard'
+                font_style: 'Button'
+                pos_hint: {'center_x': 0.5, 'center_y': 0.35}
+                on_release: root.show_data()
+
+
+<SettingsScreen>:
+    name: 'settings'
+    BoxLayout:
+        Button:
+            text: 'My settings button'
+        Button:
+            text: 'Back to menu'
+            # on_press: root.manager.current = 'menu'
+            on_release: app.get_running_app().restart()
+
+<MeaningsScreen>:
+    MDBoxLayout:
+        spacing: "12dp"
+        pos_hint: {"top": 1}
+        adaptive_height: True
+        orientation: "vertical"
+        size: root.width, root.height
+
+        MDToolbar:
+            title: 'English Vocabulary Flashcard Maker'
+            anchor_title: 'center'
+            left_action_items: [["arrow-left", lambda x: app.get_running_app().restart()]]
+            elevation: 10
+        ScrollView:
+
+            MDList:
+                id: meanings_container
