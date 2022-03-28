@@ -45,6 +45,7 @@ from src.dict_scraper.items import CambridgeDictionaryItem
 from src.lib.json_to_apkg import JsonToApkg
 
 # os.environ["KIVY_NO_CONSOLELOG"] = "1"
+kivy.require('1.9.0')
 
 CONTAINER = {'url': '', 'dictionary': [], 'meanings': []}
 DICTIONARIES = {
