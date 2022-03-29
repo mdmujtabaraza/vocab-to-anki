@@ -156,9 +156,9 @@ class CambridgeSpider(Spider):
         meaning = None
         for combinator in combinators:
             if in_dsense:
-                meaning = response.css(f"#{cid}{combinator} .dsense_b .db").css("::text").extract()
+                meaning = response.css(f"#{cid}{combinator} .dsense_b .ddef_d").css("::text").extract()
             else:
-                meaning = response.css(f"#{cid}{combinator} .dphrase_b .db").css("::text").extract()
+                meaning = response.css(f"#{cid}{combinator} .dphrase_b .ddef_d").css("::text").extract()
             # print(f"#{cid}{combinator} .dpos-h .dpos")
             if meaning is not None:
                 # print("correct")
@@ -268,6 +268,7 @@ class MeaningsSpider(Spider):
         # section  type        short meaning    block
 
         sections = response.css(".dsense")
+        last_true_section_id = None
         for section in sections:
             section_id = section.css(".cid::attr(id)").extract()
 
@@ -275,18 +276,26 @@ class MeaningsSpider(Spider):
             parts_of_speech = section.css(".dsense_pos").extract()
             if not parts_of_speech:
                 in_dsense = False
-                # print('not in_dsense:', section.css(".cid::attr(id)").extract())
+                # print('not in_dsense:', section_id)
                 word = section.css(".dphrase-title b").css("::text").extract_first()
                 guide_word = ''
-                part_of_speech = None
-                cid = '-'.join(section_id[0].split('-', 2)[:2])
-                combinators = ['', '>', '+', '~']
-                for combinator in combinators:
-                    part_of_speech = response.css(f"#{cid}{combinator} .dpos-h .dpos").css("::text").extract_first()
-                    # print(f"#{cid}{combinator} .dpos-h .dpos")
-                    if part_of_speech is not None:
-                        # print("correct")
-                        break
+                part_of_speech = response.css(f"#{section_id[0]}~ .dpos-h .dpos").css("::text").extract_first()
+                if part_of_speech is None:
+                    # print("pos None")
+                    if last_true_section_id.split('-')[0] == section_id[0].split('-')[0]:
+                        part_of_speech = response.css(f"#{last_true_section_id}~ .dsense_h .dsense_pos::text").extract_first()
+                        # print("last")
+                    else:
+                        cid = '-'.join(section_id[0].split('-', 2)[:2])
+                        part_of_speech = response.css(f"#{cid}~ .dpos-h .dpos").css("::text").extract_first()
+                        # print("last not correct")
+                # combinators = ['', '>', '+', '~']
+                # for combinator in combinators:
+                #     part_of_speech = response.css(f"#{cid}{combinator} .dpos-h .dpos").css("::text").extract_first()
+                #     print(f"#{cid}{combinator} .dpos-h .dpos")
+                #     if part_of_speech is not None:
+                #         print("correct")
+                #         break
                 # slice_number = 0
                 # while bool(re.findall('[0-9]+', section_id[0].rsplit('-', slice_number)[0])) and part_of_speech is None:
                 #     combinators = ['', '>', '+', '~']
@@ -336,7 +345,7 @@ class MeaningsSpider(Spider):
                 if word is None:
                     word = response.css(".hw.dhw").css("::text").extract_first()
                     domain = section.css(".ddomain").css("::text").extract()
-                    word_meaning = section.css(".db").css("::text").extract()
+                    word_meaning = section.css(".ddef_d").css("::text").extract()
                     dlu = section.css(".dlu").css("::text").extract()
                     cl = section.css(".cl").css("::text").extract()
                     if domain:
@@ -354,6 +363,7 @@ class MeaningsSpider(Spider):
                     else:
                         word += f" ({''.join(word_meaning).split(':')[0]})"
             else:
+                last_true_section_id = section_id[0]
                 in_dsense = True
                 # {'cid': ['cald4-1-1', 'cald4-1-1-4', 'cald4-1-1-5'], 'word': 'run', 'gw': '(GO QUICKLY)', 'pos': 'verb',
                 #  'in_dsense': True}
@@ -378,7 +388,6 @@ class MeaningsSpider(Spider):
                 #     ignore this word
                 #   else meaning found then:
                 #     keep this word
-
                 more_words = []
                 if len(section_id) > 1:
                     for bid in section_id[1:]:
@@ -400,7 +409,7 @@ class MeaningsSpider(Spider):
 
                 # if word has multiple meanings:
                 #   create another instances of those meanings
-                # print('in_dsense:', section.css(".cid::attr(id)").extract())
+                # print('in_dsense:', section_id)
                 word = section.css(".dsense_hw").css("::text").extract_first()
                 guide_word = '(' + section.css(".dsense_gw span::text").extract_first() + ')'
                 # b = section.css("b").css("::text").extract()
