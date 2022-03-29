@@ -17,7 +17,7 @@ from kivymd.toast import toast
 from kivymd.uix.list import OneLineListItem, TwoLineListItem
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.button import MDFlatButton, MDRectangleFlatButton, MDIconButton, MDFloatingActionButton
+from kivymd.uix.button import MDFlatButton, MDRaisedButton, MDRectangleFlatButton, MDIconButton, MDFloatingActionButton
 from kivymd.uix.menu import MDDropdownMenu
 from kivy.lang.builder import Builder
 from kivy.uix.screenmanager import Screen, ScreenManager
@@ -87,8 +87,6 @@ def run_spider(spider, *args):
 
 
 Window.size = (500, 400)
-Builder.load_file("src/app.kv")
-sm = ScreenManager()
 
 
 class MeaningsPanelContent(MDBoxLayout):
@@ -168,6 +166,17 @@ class MenuScreen(Screen):
         # bind the button
         # self.submit.bind(on_press=self.press)
         # self.add_widget(self.submit)
+
+    # def change_screen(self):
+    #     if self.manager.current == "meanings_screen":
+    #         self.manager.transition.direction = 'right'
+    #         self.manager.transition.duration = 0.5
+    #         self.manager.current = "menu_screen"
+    #     else:
+    #         # sm.current = 'meanings_screen'
+    #         self.manager.transition.direction = 'left'
+    #         self.manager.transition.duration = 0.5
+    #         self.manager.current = 'meanings_screen'
 
     def open_dropdown(self, dict_dropdown=False):
         if self.dropdown_menu is not None:
@@ -264,42 +273,42 @@ class MenuScreen(Screen):
 
     def open_apkg(self, obj):
         # todo: use kivymd android platform statement/variable
-        apkg_filename = 'output-' + self.timestamp + '.apkg'
-        print(apkg_filename)
-        print(platform.system())
-        if platform.system() == 'Darwin':  # macOS
-            subprocess.call(('open', apkg_filename))
-        elif platform.system() == 'Windows':  # Windows
-            os.startfile(apkg_filename)
-        else:  # linux variants
-            subprocess.call(('xdg-open', apkg_filename))
+        print("Okay.")
+        # apkg_filename = 'output' + '.apkg'
+        # # print(apkg_filename)
+        # if platform.system() == 'Darwin':  # macOS
+        #     subprocess.call(('open', apkg_filename))
+        # elif platform.system() == 'Windows':  # Windows
+        #     os.startfile(apkg_filename)
+        # else:  # linux variants
+        #     subprocess.call(('xdg-open', apkg_filename))
 
     def dialog_popup(self, title, text, close=False, open_=False):
         if not self.dialog:
             pass
         else:
             self.dialog.dismiss()
-        open_button = MDFlatButton(text="Open", on_release=self.open_apkg)
-        close_button = MDFlatButton(text="Close", on_release=self.close_dialog)
+        open_button = MDRaisedButton(text="OPEN", on_release=self.open_apkg)
+        close_button = MDFlatButton(text="CLOSE", on_release=self.close_dialog)
         if close:
             self.dialog = MDDialog(
                 title=title,
                 text=text,
-                size_hint=(0.7, 1),
+                # size_hint=(0.7, 1),
                 buttons=[close_button]
             )
         elif open_:
             self.dialog = MDDialog(
                 title=title,
                 text=text,
-                size_hint=(0.7, 1),
+                # size_hint=(0.7, 1),
                 buttons=[close_button, open_button]
             )
         else:
             self.dialog = MDDialog(
                 title=title,
                 text=text,
-                size_hint=(0.7, 1)
+                # size_hint=(0.7, 1)
             )
         self.dialog.open()
 
@@ -309,23 +318,33 @@ class MenuScreen(Screen):
 
     def confirm_generation(self, section_id, meaning):
         meaning_text = meaning[1] if type(meaning) is tuple else meaning
-        confirm_button = MDFlatButton(
-            text="Confirm", on_release=lambda x, y=section_id, z=meaning: self.generate_flashcard(x, y, z)
+        confirm_button = MDRaisedButton(
+            text="CONFIRM", on_release=lambda x, y=section_id, z=meaning: self.generate_flashcard(x, y, z)
         )
-        close_button = MDFlatButton(text="Close", on_release=self.close_dialog)
+        close_button = MDFlatButton(text="CLOSE", on_release=self.close_dialog)
         if self.dialog:
             self.dialog.dismiss()
         self.dialog = MDDialog(
             title="Confirm generation",
             text=f"Do you want to generate Anki flashcard for \"{meaning_text}\"?",
-            size_hint=(0.7, 1),
+            # size_hint=(0.7, 1),
             buttons=[close_button, confirm_button]
         )
         self.dialog.open()
 
     def generate_flashcard(self, btn, section_id, meaning):
+        print(section_id, meaning)
+        if type(meaning) is tuple:
+            pass
+        else:
+            pass
+        MDApp.get_running_app().soft_restart()
         # run_spider(CambridgeSpider, gcurl, self.tld, self.timestamp)
-        print(section_id, meaning)  # {'cid': 'cald4-1-1', 'word': 'run', 'gw': '(GO QUICKLY)', 'pos': 'verb'}
+        self.dialog_popup(
+            "Open Anki Package?",
+            f"Successfully generated flashcard. Do you want to open it in Anki?",
+            open_=True
+        )
 
     def show_data(self):
         # word_url = self.word_url.text
@@ -406,16 +425,10 @@ class MenuScreen(Screen):
                             )
                         )
                     )
-            sm.switch_to(meanings_screen)
+            MDApp.get_running_app().change_screen()
         else:
             self.toast("Invalid URL. Please try again")
             return False
-        # self.dialog_popup(
-        #     "Open Anki Package?",
-        #     f"Successfully generated flashcard. Do you want to open it in Anki?",
-        #     open_=True
-        # )
-        # p1 = Process(reactor.run)  # todo: what to do?????
         # self.add_widget(MDLabel(
         #     text=f"Successfully generated flashcard for {word_url}..",
         #     halign='center', theme_text_color='Hint', font_style='OVERLINE'
@@ -431,6 +444,17 @@ class MeaningsScreen(Screen):
         # call grid layout constructor
         super(MeaningsScreen, self).__init__(**kwargs)
         # self.on_start()
+
+    # def change_screen(self):
+    #     if self.manager.current == "menu_screen":
+    #         self.manager.transition.direction = 'left'
+    #         self.manager.transition.duration = 0.5  # 0.5 second
+    #         self.manager.current = "meanings_screen"
+    #     else:
+    #         # sm.current = 'menu_screen'
+    #         self.manager.transition.direction = 'right'
+    #         self.manager.transition.duration = 0.5  # 0.5 second
+    #         self.manager.current = 'menu_screen'
 
     def on_start(self):
         # for i in range(20):
@@ -454,13 +478,15 @@ class MeaningsScreen(Screen):
 
 class MyApp(MDApp):
     def build(self):
+        # sm.add_widget(MenuScreen(name='menu_screen'))
+        # sm.add_widget(MeaningsScreen(name='meanings_screen'))
         self.title = 'Vocab to Anki'
-        sm.add_widget(MenuScreen(name='menu_screen'))
-        sm.add_widget(MeaningsScreen(name='meanings_screen'))
         self.theme_cls.primary_palette = "Blue"
         self.theme_cls.theme_style = "Dark"
         self.theme_cls.material_style = "M3"
-        return sm
+        screen = Builder.load_file("src/app.kv")
+        return screen
+        # return sm
         # return MyLayout()
 
     def restart(self):
@@ -469,6 +495,24 @@ class MyApp(MDApp):
         global CONTAINER
         CONTAINER = {'url': '', 'dictionary': [], 'meanings': []}
         return MyApp().run()
+
+    def change_screen(self):
+        if self.root.current == "menu_screen":
+            self.root.transition.direction = 'left'
+            self.root.transition.duration = 0.5  # 0.5 second
+            self.root.current = "meanings_screen"
+        else:
+            # sm.current = 'menu_screen'
+            self.root.transition.direction = 'right'
+            self.root.transition.duration = 0.5  # 0.5 second
+            self.root.current = 'menu_screen'
+
+    def soft_restart(self):
+        global CONTAINER
+        CONTAINER = {'url': '', 'dictionary': [], 'meanings': []}
+        self.root.transition.direction = 'right'
+        self.root.transition.duration = 0.5  # 0.5 second
+        self.root.current = 'menu_screen'
 
 
 # Run the App

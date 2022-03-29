@@ -4,13 +4,12 @@
     size_hint: None, None
     size: dp(48), dp(48)
 
-# ScreenManager:
-#     MenuScreen:
-#         name: "menu_screen"
-#         id: menu_screen
-#     MeaningsScreen:
-#         name: "meanings_screen"
-#         id: meanings_screen
+ScreenManager:
+    id: screen_manager
+    MenuScreen:
+        id: menu_screen
+    MeaningsScreen:
+        id: meanings_screen
 
 # MDLabel:
 #     id: url_label
@@ -21,6 +20,7 @@
 #     pos_hint: {'center_x': 0.5, 'center_y': 0.92}
 
 <MenuScreen>:
+    name: "menu_screen"
     MDBoxLayout:
         orientation: "vertical"
         size: root.width, root.height
@@ -86,6 +86,7 @@
 
 
 <MeaningsScreen>:
+    name: "meanings_screen"
     MDBoxLayout:
         spacing: "10dp"
         pos_hint: {"top": 1}
@@ -96,7 +97,7 @@
         MDToolbar:
             title: 'Vocab to Anki'
             anchor_title: 'center'
-            left_action_items: [["arrow-left", lambda x: app.get_running_app().restart()]]
+            left_action_items: [["arrow-left", lambda x: app.soft_restart()]]
             elevation: 10
         ScrollView:
 
