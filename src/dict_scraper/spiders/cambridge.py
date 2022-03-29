@@ -271,12 +271,13 @@ class MeaningsSpider(Spider):
         last_true_section_id = None
         for section in sections:
             section_id = section.css(".cid::attr(id)").extract()
+            more_words = {section_id[0]: {}}
 
             # dphrase_block = section.css(".dphrase-block").extract()
             parts_of_speech = section.css(".dsense_pos").extract()
             if not parts_of_speech:
                 in_dsense = False
-                # print('not in_dsense:', section_id)
+                print('not in_dsense:', section_id)
                 word = section.css(".dphrase-title b").css("::text").extract_first()
                 guide_word = ''
                 part_of_speech = response.css(f"#{section_id[0]}~ .dpos-h .dpos").css("::text").extract_first()
@@ -388,8 +389,17 @@ class MeaningsSpider(Spider):
                 #     ignore this word
                 #   else meaning found then:
                 #     keep this word
-                more_words = []
-                if len(section_id) > 1:
+                extracted_meanings = section.css(".dsense_b > .ddef_block .ddef_d").css("::text").extract()
+                meanings_list = ''.join(extracted_meanings).split(':')[:-1]
+
+                if len(section_id) <= 1:
+                    if len(meanings_list) > 1:
+                        for i in range(len(meanings_list)):
+                            more_words[section_id[0]][i + 1] = meanings_list[i]
+                else:
+                    if meanings_list:
+                        for i in range(len(meanings_list)):
+                            more_words[section_id[0]][i + 1] = meanings_list[i]
                     for bid in section_id[1:]:
                         blue_block_title = ''.join(
                             section.css(f"#{bid}~ .dphrase_h b").css("::text").extract()
@@ -398,18 +408,12 @@ class MeaningsSpider(Spider):
                             blue_block_meaning = ''.join(
                                 section.css(f"#{bid}~ .dphrase_b .ddef_d").css("::text").extract()
                             )[:-1]
-                            more_words.append(blue_block_meaning)
+                            more_words[section_id[0]][bid] = blue_block_meaning
                         else:
-                            more_words.append(blue_block_title)
-                extracted_meanings = section.css(".dsense_b > .ddef_block .ddef_d").css("::text").extract()
-                meanings_list = ''.join(extracted_meanings).split(':')[:-1]
-                if len(meanings_list) > 1:
-                    # print(len(extracted_meanings), meanings_list, len(meanings_list))
-                    more_words.extend(meanings_list)
-
+                            more_words[section_id[0]][bid] = blue_block_title
                 # if word has multiple meanings:
                 #   create another instances of those meanings
-                # print('in_dsense:', section_id)
+                print('in_dsense:', section_id)
                 word = section.css(".dsense_hw").css("::text").extract_first()
                 guide_word = '(' + section.css(".dsense_gw span::text").extract_first() + ')'
                 # b = section.css("b").css("::text").extract()

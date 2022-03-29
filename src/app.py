@@ -86,7 +86,7 @@ def run_spider(spider, *args):
 # ----------------------------------- KIVY -------------------------------------
 
 
-Window.size = (500, 500)
+Window.size = (500, 400)
 Builder.load_file("src/app.kv")
 sm = ScreenManager()
 
@@ -95,11 +95,13 @@ class MeaningsPanelContent(MDBoxLayout):
     def __init__(self, *args, **kwargs):
         super().__init__()
         menu_instance = args[0]
-        for meaning in args[1]['more_words']:
+        section_id = args[1]['cid']
+        more_words = args[1]['more_words'][section_id[0]]
+        for key, value in more_words.items():
             # root.ids.meanings_screen.ids.meanings_panel
             self.add_widget(OneLineListItem(
-                text=meaning,
-                on_release=lambda x, y=args[1]: menu_instance.confirm_generation(y)
+                text=value,
+                on_release=lambda x, y=section_id[0], z=(key, value): menu_instance.confirm_generation(y, z)
             ))
 
 
@@ -305,22 +307,25 @@ class MenuScreen(Screen):
         if value is True:
             self.tld = tld
 
-    def confirm_generation(self, meaning):
-        confirm_button = MDFlatButton(text="Confirm", on_release=lambda x, y=meaning: self.generate_flashcard(x, y))
+    def confirm_generation(self, section_id, meaning):
+        meaning_text = meaning[1] if type(meaning) is tuple else meaning
+        confirm_button = MDFlatButton(
+            text="Confirm", on_release=lambda x, y=section_id, z=meaning: self.generate_flashcard(x, y, z)
+        )
         close_button = MDFlatButton(text="Close", on_release=self.close_dialog)
         if self.dialog:
             self.dialog.dismiss()
         self.dialog = MDDialog(
             title="Confirm generation",
-            text=f"Do you want to generate Anki flashcard for \"{meaning['word']} {meaning['gw']}\"?",
+            text=f"Do you want to generate Anki flashcard for \"{meaning_text}\"?",
             size_hint=(0.7, 1),
             buttons=[close_button, confirm_button]
         )
         self.dialog.open()
 
-    def generate_flashcard(self, btn, meaning):
+    def generate_flashcard(self, btn, section_id, meaning):
         # run_spider(CambridgeSpider, gcurl, self.tld, self.timestamp)
-        print(meaning)  # {'cid': 'cald4-1-1', 'word': 'run', 'gw': '(GO QUICKLY)', 'pos': 'verb'}
+        print(section_id, meaning)  # {'cid': 'cald4-1-1', 'word': 'run', 'gw': '(GO QUICKLY)', 'pos': 'verb'}
 
     def show_data(self):
         # word_url = self.word_url.text
@@ -378,15 +383,17 @@ class MenuScreen(Screen):
             # print(CONTAINER['meanings'])
             meanings_screen = self.manager.get_screen("meanings_screen")
             for meaning in CONTAINER['meanings']:
+                section_id = meaning['cid']
                 word = meaning['word']
                 guide_word = meaning['gw']
                 part_of_speech = meaning['pos']
-                if not meaning['more_words']:
+                meaning_text = word + " " + guide_word
+                if not meaning['more_words'][section_id[0]]:
                     meanings_screen.ids.meanings_container.add_widget(
                         TwoLineListItem(
-                            text=f"{word} {guide_word}",
+                            text=meaning_text,
                             secondary_text=f"{part_of_speech}",
-                            on_release=lambda x, y=meaning: self.confirm_generation(y)
+                            on_release=lambda x, y=section_id[0], z=meaning_text: self.confirm_generation(y, z)
                         )
                     )
                 else:
@@ -447,6 +454,7 @@ class MeaningsScreen(Screen):
 
 class MyApp(MDApp):
     def build(self):
+        self.title = 'Vocab to Anki'
         sm.add_widget(MenuScreen(name='menu_screen'))
         sm.add_widget(MeaningsScreen(name='meanings_screen'))
         self.theme_cls.primary_palette = "Blue"

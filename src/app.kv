@@ -27,7 +27,7 @@
         MDToolbar:
             title: 'Vocab to Anki'
             anchor_title: 'center'
-            right_action_items: [["refresh", lambda x: app.get_running_app().restart()]]
+            # right_action_items: [["refresh", lambda x: app.get_running_app().restart()]]
             elevation: 10
         FloatLayout:
             # MDFlatButton:
@@ -38,7 +38,7 @@
                 id: dict_dropdown
                 text: "Browse"
                 font_style: 'Button'
-                pos_hint: {"center_x": 0.5, 'center_y': 0.9}
+                pos_hint: {"center_x": 0.5, 'center_y': 0.85}
                 on_release: root.open_dropdown(dict_dropdown=True)
             MDTextField:
                 id: word_input
@@ -48,26 +48,26 @@
                 helper_text_mode: "on_focus"
                 # icon_right: "clipboard-file"
                 # icon_right_color: app.theme_cls.primary_color
-                pos_hint: {'center_x': 0.4, 'center_y': 0.75}
+                pos_hint: {'center_x': 0.4, 'center_y': 0.7}
                 size_hint_x: None
                 width: 240
             MDIconButton:
                 icon: "clipboard-file"
-                pos_hint: {"center_x": .9, "center_y": .75}
+                pos_hint: {"center_x": .9, "center_y": .7}
                 on_release: word_input.text = Clipboard.paste()
-            MDLabel:
-                text: "Select Pronunciation Accent"
-                theme_text_color: 'Primary'
-                font_style: 'Body1'
-                halign: 'center'
-                pos_hint: {'center_x': 0.5, 'center_y': 0.63}
+            # MDLabel:
+            #     text: "Select Pronunciation Accent"
+            #     theme_text_color: 'Primary'
+            #     font_style: 'Body1'
+            #     halign: 'center'
+            #     pos_hint: {'center_x': 0.5, 'center_y': 0.58}
             GridLayout:
                 cols: 2
                 row_force_default: True
                 row_default_height: 40
                 col_force_default: True
                 col_default_width: 180
-                pos_hint: {'center_x': 0.26, 'center_y': 0.5}
+                pos_hint: {'center_x': 0.26, 'center_y': 0.45}
                 size_hint: (None, None)
                 MDLabel:
                     text: "English (United Kingdom)"
@@ -81,7 +81,7 @@
             MDRectangleFlatButton:
                 text: 'Generate Anki Flashcard'
                 font_style: 'Button'
-                pos_hint: {'center_x': 0.5, 'center_y': 0.35}
+                pos_hint: {'center_x': 0.5, 'center_y': 0.2}
                 on_release: root.show_data()
 
 
