@@ -14,9 +14,9 @@ class DictScraperItem(Item):
 
 class CambridgeDictionaryItem(Item):
     word = Field()
-    word_type = Field()
+    part_of_speech = Field()
     meaning = Field()
-    example_sentences = Field()
+    sentences = Field()
     phonemic_script = Field()
     pronunciation_word = Field()
     # pronunciation_meaning = Field()

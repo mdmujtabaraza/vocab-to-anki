@@ -76,11 +76,11 @@ class JsonToApkg:
             name='English Vocab',
             fields=[
                 {'name': 'Word'},
-                {'name': 'Type'},
+                {'name': 'PartOfSpeech'},
                 {'name': 'Cloze'},
                 {'name': 'PhonemicScript'},
-                {'name': 'Pronunciation'},
-                {'name': 'Definition'},
+                {'name': 'PronunciationWord'},
+                {'name': 'Meaning'},
                 {'name': 'Sentences'},
                 {'name': 'Picture'},
                 {'name': 'Synonyms'},
@@ -88,13 +88,13 @@ class JsonToApkg:
             templates=[
                 {
                     'name': 'Card 1',
-                    'qfmt': " <div style='font-family: Segoe UI; font-size: 35px;'>{{Cloze}}</div>\n\n<div style='font-family: Segoe UI; font-size: 25px; color: green;'>{{Definition}}</div>\n</br>Type your answer here:{{type:Word}}\n<br>\n{{Picture}}\n",
-                    'afmt': "{{type:Word}}\n</br>\n<div style='font-family: Segoe UI; font-size: 35px; color: blue'>{{Word}}</div>\n<div style='font-family: Segoe UI; font-size: 25px;'>{{PhonemicScript}}</div>\n</br>\n{{Pronunciation}}\n<hr id=answer>\n</br>\n<div style='font-family: Segoe UI; font-size: 23px; color: green;'>{{Definition}}</div>\n</br>\n<div style='font-family: Segoe UI; font-size: 20px; color: white;'>{{Sentences}}</div>\n</br>\n{{Synonyms}}",
+                    'qfmt': " <div style='font-family: Segoe UI; font-size: 35px;'>{{Cloze}}</div>\n\n<div style='font-family: Segoe UI; font-size: 25px; color: green;'>{{Meaning}}</div>\n</br>Type your answer here:{{type:Word}}\n<br>\n{{Picture}}\n",
+                    'afmt': "{{type:Word}}\n</br>\n<div style='font-family: Segoe UI; font-size: 35px; color: blue'>{{Word}}</div>\n<div style='font-family: Segoe UI; font-size: 25px;'>{{PhonemicScript}}</div>\n</br>\n{{PronunciationWord}}\n<hr id=answer>\n</br>\n<div style='font-family: Segoe UI; font-size: 23px; color: green;'>{{Meaning}}</div>\n</br>\n<div style='font-family: Segoe UI; font-size: 20px; color: white;'>{{Sentences}}</div>\n</br>\n{{Synonyms}}",
                 },
                 {
                     'name': 'Card 2',
-                    'qfmt': "TYPE WHAT YOU HEAR ------------->  {{Pronunciation}}\n</br>\n<div style='font-family: Segoe UI; font-size: 25px; color: blue'>{{PhonemicScript}}</div>\n</br>\n{{type:Word}}\n</br>\n<div style='font-family: Segoe UI; font-size: 25px; color: green;'>{{Definition}}</div>\n</br>\n{{Picture}}",
-                    'afmt': "{{type:Word}}\n</br>\n<div style='font-family: Segoe UI; font-size: 35px; color: blue'>{{Word}}</div>\n<div style='font-family: Segoe UI; font-size: 25px;'>{{PhonemicScript}}</div>\n</br>\nLISTEN AGAIN ------------->  {{Pronunciation}}\n</br></br>\n<div style='font-family: Segoe UI; font-size: 25px; color: green;'>{{Definition}}</div>\n</br>\n<div style='font-family: Segoe UI; font-size: 20px; color: white;'>{{Sentences}}</div>",
+                    'qfmt': "TYPE WHAT YOU HEAR ------------->  {{PronunciationWord}}\n</br>\n<div style='font-family: Segoe UI; font-size: 25px; color: blue'>{{PhonemicScript}}</div>\n</br>\n{{type:Word}}\n</br>\n<div style='font-family: Segoe UI; font-size: 25px; color: green;'>{{Meaning}}</div>\n</br>\n{{Picture}}",
+                    'afmt': "{{type:Word}}\n</br>\n<div style='font-family: Segoe UI; font-size: 35px; color: blue'>{{Word}}</div>\n<div style='font-family: Segoe UI; font-size: 25px;'>{{PhonemicScript}}</div>\n</br>\nLISTEN AGAIN ------------->  {{PronunciationWord}}\n</br></br>\n<div style='font-family: Segoe UI; font-size: 25px; color: green;'>{{Meaning}}</div>\n</br>\n<div style='font-family: Segoe UI; font-size: 20px; color: white;'>{{Sentences}}</div>",
                 },
             ],
             css=".card {\n font-family: Segoe UI;\n font-size: 20px;\n text-align: center;\n color: black;\n background-color: white;\n}\n#typeans { font-size:60px !important }",
@@ -105,14 +105,14 @@ class JsonToApkg:
         # todo: cloze, picture, synonyms, arrange in order, if sound not there then?
         list_of_fields = [
             self.j_dict.get("word", ""),
-            self.j_dict.get("word_type", ""),
+            self.j_dict.get("part_of_speech", ""),
             generate_cloze(self.j_dict["word"]),  # self.j_dict.get("cloze", ""),
             self.j_dict.get("phonemic_script", ""),
             self.j_dict.get("pronunciation_word", ""),
             self.j_dict.get("meaning", ""),
             self.j_dict.get("sentences", ""),
             "",  # self.j_dict.get("picture", ""),
-            "https://www.thesaurus.com/browse/" + self.j_dict.get("synonyms", "")
+            self.j_dict.get("synonyms", "")
         ]
         # list_of_fields = [x for x in self.j_dict.values()]
 

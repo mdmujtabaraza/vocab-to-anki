@@ -93,13 +93,15 @@ class MeaningsPanelContent(MDBoxLayout):
     def __init__(self, *args, **kwargs):
         super().__init__()
         menu_instance = args[0]
-        section_id = args[1]['cid']
-        more_words = args[1]['more_words'][section_id[0]]
+        meaning = args[1]
+        section_ids = meaning['cid']
+        more_words = meaning['more_words'][section_ids[0]]
         for key, value in more_words.items():
             # root.ids.meanings_screen.ids.meanings_panel
+            section_tuple = (section_ids, (key, value), meaning['pos'], meaning['in_dsense'])
             self.add_widget(OneLineListItem(
                 text=value,
-                on_release=lambda x, y=section_id[0], z=(key, value): menu_instance.confirm_generation(y, z)
+                on_release=lambda x, y=section_tuple: menu_instance.confirm_generation(y)
             ))
 
 
@@ -273,15 +275,15 @@ class MenuScreen(Screen):
 
     def open_apkg(self, obj):
         # todo: use kivymd android platform statement/variable
-        print("Okay.")
-        # apkg_filename = 'output' + '.apkg'
-        # # print(apkg_filename)
-        # if platform.system() == 'Darwin':  # macOS
-        #     subprocess.call(('open', apkg_filename))
-        # elif platform.system() == 'Windows':  # Windows
-        #     os.startfile(apkg_filename)
-        # else:  # linux variants
-        #     subprocess.call(('xdg-open', apkg_filename))
+        # print("Okay.")
+        apkg_filename = 'output' + '.apkg'
+        # print(apkg_filename)
+        if platform.system() == 'Darwin':  # macOS
+            subprocess.call(('open', apkg_filename))
+        elif platform.system() == 'Windows':  # Windows
+            os.startfile(apkg_filename)
+        else:  # linux variants
+            subprocess.call(('xdg-open', apkg_filename))
 
     def dialog_popup(self, title, text, close=False, open_=False):
         if not self.dialog:
@@ -316,10 +318,11 @@ class MenuScreen(Screen):
         if value is True:
             self.tld = tld
 
-    def confirm_generation(self, section_id, meaning):
+    def confirm_generation(self, section_tuple):
+        meaning = section_tuple[1]
         meaning_text = meaning[1] if type(meaning) is tuple else meaning
         confirm_button = MDRaisedButton(
-            text="CONFIRM", on_release=lambda x, y=section_id, z=meaning: self.generate_flashcard(x, y, z)
+            text="CONFIRM", on_release=lambda x, y=section_tuple: self.generate_flashcard(x, y)
         )
         close_button = MDFlatButton(text="CLOSE", on_release=self.close_dialog)
         if self.dialog:
@@ -332,14 +335,10 @@ class MenuScreen(Screen):
         )
         self.dialog.open()
 
-    def generate_flashcard(self, btn, section_id, meaning):
-        print(section_id, meaning)
-        if type(meaning) is tuple:
-            pass
-        else:
-            pass
+    def generate_flashcard(self, btn, section_tuple):
+        print(section_tuple)
+        run_spider(CambridgeSpider, CONTAINER['url'], self.tld, section_tuple)
         MDApp.get_running_app().soft_restart()
-        # run_spider(CambridgeSpider, gcurl, self.tld, self.timestamp)
         self.dialog_popup(
             "Open Anki Package?",
             f"Successfully generated flashcard. Do you want to open it in Anki?",
@@ -402,17 +401,18 @@ class MenuScreen(Screen):
             # print(CONTAINER['meanings'])
             meanings_screen = self.manager.get_screen("meanings_screen")
             for meaning in CONTAINER['meanings']:
-                section_id = meaning['cid']
+                section_ids = meaning['cid']
                 word = meaning['word']
                 guide_word = meaning['gw']
                 part_of_speech = meaning['pos']
                 meaning_text = word + " " + guide_word
-                if not meaning['more_words'][section_id[0]]:
+                section_tuple = (section_ids, meaning_text, meaning['pos'], meaning['in_dsense'])
+                if not meaning['more_words'][section_ids[0]]:
                     meanings_screen.ids.meanings_container.add_widget(
                         TwoLineListItem(
                             text=meaning_text,
                             secondary_text=f"{part_of_speech}",
-                            on_release=lambda x, y=section_id[0], z=meaning_text: self.confirm_generation(y, z)
+                            on_release=lambda x, y=section_tuple: self.confirm_generation(y)
                         )
                     )
                 else:

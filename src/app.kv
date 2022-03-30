@@ -97,7 +97,7 @@ ScreenManager:
         MDToolbar:
             title: 'Vocab to Anki'
             anchor_title: 'center'
-            left_action_items: [["arrow-left", lambda x: app.soft_restart()]]
+            left_action_items: [["arrow-left", lambda x: app.get_running_app().soft_restart()]]
             elevation: 10
         ScrollView:
 
