@@ -132,3 +132,4 @@ dmypy.json
 example_README.md
 media/
 output.apkg
+!buildozer.spec
