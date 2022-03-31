@@ -1,8 +1,0 @@
-twisted
-scrapy
-scrapy-fake-useragent
-genanki
-kivy[full]
-kivymd
-validators
-gtts

@@ -130,3 +130,5 @@ dmypy.json
 
 # Custom
 example_README.md
+media/
+output.apkg

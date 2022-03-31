@@ -1,3 +1,4 @@
+import os
 import re
 import sys
 import shutil
@@ -254,7 +255,9 @@ class CambridgeSpider(Spider):
             filename = word + '_' + accent_tld + '.mp3'
 
             tts = gTTS(word, lang='en', tld=tld)
-            tts.save(filename)
+            if not os.path.exists('media'):
+                os.makedirs('media')
+            tts.save('media/' + filename)
 
             # url = 'https://' + CambridgeSpider.allowed_domains[0] + address
             # http = urllib3.PoolManager(10, headers={'user-agent': USER_AGENT})

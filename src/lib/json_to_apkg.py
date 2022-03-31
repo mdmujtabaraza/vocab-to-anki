@@ -128,7 +128,7 @@ class JsonToApkg:
 
         # add media
         my_package = genanki.Package(my_deck)
-        my_package.media_files = [self.j_dict["pronunciation_word"][7:-1:]]
+        my_package.media_files = ['media/' + self.j_dict["pronunciation_word"][7:-1:]]
         # generate apkg
         # my_package.write_to_file('output-' + self.j_dict["word"] + '.apkg')
         # apkg_filename = 'output-' + dt.now().strftime("%Y%m%d%H%M%S") + '.apkg'

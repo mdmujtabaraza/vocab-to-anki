@@ -1,4 +1,6 @@
-from multiprocessing import Process, Queue
+# from multiprocessing import Process, Queue
+from queue import Queue
+from threading import Thread
 import webbrowser
 import validators
 import time
@@ -56,7 +58,7 @@ CONTAINER = {'url': '', 'dictionary': [], 'meanings': []}
 #     def process_item(self, item, spider):
 #         CONTAINER['meanings'].append(item)
 
-
+# CrawlerProcess  works only single time
 # class UrlCrawlerScript(Process):
 #     def __init__(self, spider, q, *args):
 #         Process.__init__(self)
@@ -82,33 +84,72 @@ CONTAINER = {'url': '', 'dictionary': [], 'meanings': []}
 #         CONTAINER['dictionary'] = q.get()[0]
 #     crawler.join()
 
+# CrawlerRunner with multiprocessing.Process and multiprocessing.Queue  works
+# class UrlCrawlerScript(Process):
+#     def __init__(self, spider, q, *args):
+#         Process.__init__(self)
+#         self.runner = CrawlerRunner(get_project_settings())
+#         self.spider = spider
+#         self.q = q
+#         self.args = args
+#         self.d = None
+#
+#     def run(self):
+#         deferred = self.runner.crawl(self.spider, self.q, self.args)
+#         deferred.addBoth(lambda _: reactor.stop())
+#         reactor.run()
+#
+#
+# def run_spider(spider, *args):
+#     q = Queue()
+#     crawler = UrlCrawlerScript(spider, q, *args)
+#     crawler.start()
+#     print(q.get()[0])
+#     # if spider is MeaningsSpider:
+#     #     CONTAINER['meanings'] = q.get()[0]
+#     # else:  # spider is CambridgeSpider:
+#     #     CONTAINER['dictionary'] = q.get()[0]
+#     crawler.join()
 
-class UrlCrawlerScript(Process):
-    def __init__(self, spider, q, *args):
-        Process.__init__(self)
-        self.runner = CrawlerRunner(get_project_settings())
-        self.spider = spider
-        self.q = q
-        self.args = args
-        self.d = None
 
-    def run(self):
-        deferred = self.runner.crawl(self.spider, self.q, self.args)
-        deferred.addBoth(lambda _: reactor.stop())
-        reactor.run()
+# CrawlerRunner with threading.Thread and queue.Queue  not works
+# class UrlCrawlerScript(Thread):
+#     def __init__(self, spider, q, *args):
+#         Thread.__init__(self)
+#         self.runner = CrawlerRunner(get_project_settings())
+#         self.spider = spider
+#         self.q = q
+#         self.args = args
+#         self.d = None
+#
+#     def run(self):
+#         deferred = self.runner.crawl(self.spider, self.q, self.args)
+#         deferred.addBoth(lambda _: reactor.stop())
+#         reactor.run()
+#
+#
+# def run_spider(spider, *args):
+#     q = Queue()
+#     runner = UrlCrawlerScript(spider, q, *args)
+#     runner.start()
+#     print(q.get()[0])
+#     # if spider is MeaningsSpider:
+#     #     CONTAINER['meanings'] = q.get()[0]
+#     # else:  # spider is CambridgeSpider:
+#     #     CONTAINER['dictionary'] = q.get()[0]
+#     runner.join()
 
 
-def run_spider(spider, *args):
+def run_spider(runner, spider, *args):
     q = Queue()
-    crawler = UrlCrawlerScript(spider, q, *args)
-    crawler.start()
+    runner.crawl(spider, q, args)
+    if not reactor.running:
+        Thread(target=reactor.run).start()
     print(q.get()[0])
     # if spider is MeaningsSpider:
     #     CONTAINER['meanings'] = q.get()[0]
     # else:  # spider is CambridgeSpider:
     #     CONTAINER['dictionary'] = q.get()[0]
-    crawler.join()
-
 
 # # the wrapper to make it run more times
 # def run_spider(spider, *args):

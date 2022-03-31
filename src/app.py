@@ -1,7 +1,9 @@
 import os
 import platform
 import subprocess
-from multiprocessing import Process, Queue
+# from multiprocessing import Process, Queue
+from threading import Thread
+from queue import Queue
 import webbrowser
 import validators
 from datetime import datetime as dt
@@ -47,7 +49,7 @@ from src.dict_scraper.items import CambridgeDictionaryItem
 from src.lib.json_to_apkg import JsonToApkg
 
 # os.environ["KIVY_NO_CONSOLELOG"] = "1"
-kivy.require('1.9.0')
+# kivy.require('1.9.0')
 
 CONTAINER = {'url': '', 'dictionary': [], 'meanings': []}
 DICTIONARIES = {
@@ -59,34 +61,36 @@ DICTIONARIES = {
 }
 
 
-class UrlCrawlerScript(Process):
-    def __init__(self, spider, q, *args):
-        Process.__init__(self)
-        self.runner = CrawlerRunner(get_project_settings())
-        self.spider = spider
-        self.q = q
-        self.args = args
+# class UrlCrawlerScript(Process):
+#     def __init__(self, spider, q, *args):
+#         Process.__init__(self)
+#         self.runner = CrawlerRunner(get_project_settings())
+#         self.spider = spider
+#         self.q = q
+#         self.args = args
+#
+#     def run(self):
+#         deferred = self.runner.crawl(self.spider, self.q, self.args)
+#         deferred.addBoth(lambda _: reactor.stop())
+#         reactor.run()
 
-    def run(self):
-        deferred = self.runner.crawl(self.spider, self.q, self.args)
-        deferred.addBoth(lambda _: reactor.stop())
-        reactor.run()
-
-
-def run_spider(spider, *args):
+def run_spider(runner, spider, *args):
     q = Queue()
-    crawler = UrlCrawlerScript(spider, q, *args)
-    crawler.start()
+    runner.crawl(spider, q, args)
+    if not reactor.running:
+        Thread(target=reactor.run).start()
     if spider is MeaningsSpider:
         CONTAINER['meanings'] = q.get()[0]
     else:  # spider is CambridgeSpider:
         CONTAINER['dictionary'] = q.get()[0]
-    crawler.join()
+
+
+crawler_runner = CrawlerRunner(get_project_settings())
 
 # ----------------------------------- KIVY -------------------------------------
 
 
-Window.size = (500, 400)
+# Window.size = (500, 400)
 
 
 class MeaningsPanelContent(MDBoxLayout):
@@ -337,7 +341,7 @@ class MenuScreen(Screen):
 
     def generate_flashcard(self, btn, section_tuple):
         print(section_tuple)
-        run_spider(CambridgeSpider, CONTAINER['url'], self.tld, section_tuple)
+        run_spider(crawler_runner, CambridgeSpider, CONTAINER['url'], self.tld, section_tuple)
         MDApp.get_running_app().soft_restart()
         self.dialog_popup(
             "Open Anki Package?",
@@ -395,7 +399,7 @@ class MenuScreen(Screen):
             # gcurl = "https://webcache.googleusercontent.com/search?q=cache:" + word_url
 
             CONTAINER['url'] = word_url
-            run_spider(MeaningsSpider, word_url)
+            run_spider(crawler_runner, MeaningsSpider, word_url)
 
             # self.dialog_popup("Processing...", "Please wait. Generating Flashcard..")
             # print(CONTAINER['meanings'])
