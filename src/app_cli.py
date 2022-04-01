@@ -1,6 +1,6 @@
-# from multiprocessing import Process, Queue
-from queue import Queue
-from threading import Thread
+from multiprocessing import Process, Queue
+# from queue import Queue
+# from threading import Thread
 import webbrowser
 import validators
 import time
@@ -21,6 +21,7 @@ from scrapy import signals
 from scrapy.http.request import Request
 from scrapy.crawler import CrawlerRunner, CrawlerProcess
 from scrapy.utils.project import get_project_settings
+from scrapy.utils.log import configure_logging
 
 from src.dict_scraper.items import CambridgeDictionaryItem
 from src.dict_scraper.spiders.cambridge import CambridgeSpider, MeaningsSpider
@@ -139,17 +140,58 @@ CONTAINER = {'url': '', 'dictionary': [], 'meanings': []}
 #     #     CONTAINER['dictionary'] = q.get()[0]
 #     runner.join()
 
+# defered join and defered reactor stop in main
+# def run_spider(spider, *args):
+#     q = Queue()
+#     runner = CrawlerRunner(get_project_settings())
+#     runner.crawl(spider, q, args)
+#     if not reactor.running:
+#         Thread(target=reactor.run).start()
+#     print(q.get()[0])
+#     # if spider is MeaningsSpider:
+#     #     CONTAINER['meanings'] = q.get()[0]
+#     # else:  # spider is CambridgeSpider:
+#     #     CONTAINER['dictionary'] = q.get()[0]
 
-def run_spider(runner, spider, *args):
+
+# One more way, use CrawlerRunner in main
+# def run_spider(runner, spider, *args):
+#     q = Queue()
+#     runner.crawl(spider, q, args)
+#     # if not reactor.running:
+#     #     Thread(target=reactor.run).start()
+#     print(q.get()[0])
+#     # if spider is MeaningsSpider:
+#     #     CONTAINER['meanings'] = q.get()[0]
+#     # else:  # spider is CambridgeSpider:
+#     #     CONTAINER['dictionary'] = q.get()[0]
+
+class CrawlerRunnerProcess(Process):
+    def __init__(self, spider, q, *args):
+        Process.__init__(self)
+        self.runner = CrawlerRunner(get_project_settings())
+        self.spider = spider
+        self.q = q
+        self.args = args
+        self.d = None
+
+    def run(self):
+        deferred = self.runner.crawl(self.spider, self.q, self.args)
+        deferred.addBoth(lambda _: reactor.stop())
+        reactor.run(installSignalHandlers=False)
+
+
+def run_spider(spider, *args):
     q = Queue()
-    runner.crawl(spider, q, args)
-    if not reactor.running:
-        Thread(target=reactor.run).start()
-    print(q.get()[0])
+    runner = CrawlerRunnerProcess(spider, q, *args)
+    runner.start()
+    # print(q.get()[0])
     # if spider is MeaningsSpider:
     #     CONTAINER['meanings'] = q.get()[0]
     # else:  # spider is CambridgeSpider:
     #     CONTAINER['dictionary'] = q.get()[0]
+    runner.join()
+    return q.get()
 
 # # the wrapper to make it run more times
 # def run_spider(spider, *args):
@@ -172,6 +214,8 @@ def run_spider(runner, spider, *args):
 #     if result is not None:
 #         raise result
 
+
+configure_logging()
 
 if __name__ == '__main__':
     # word_url = "https://dictionary.cambridge.org/dictionary/english/stand"

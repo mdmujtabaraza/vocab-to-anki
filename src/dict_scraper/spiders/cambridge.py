@@ -344,7 +344,7 @@ class MeaningsSpider(Spider):
                 word = section.css(".dphrase-title b").css("::text").extract_first()
                 guide_word = ''
                 part_of_speech = response.css(f"#{section_id[0]}~ .dpos-h .dpos").css("::text").extract_first()
-                if part_of_speech is None:
+                if not part_of_speech:
                     # print("pos None")
                     if last_true_section_id.split('-')[0] == section_id[0].split('-')[0]:
                         part_of_speech = response.css(f"#{last_true_section_id}~ .dsense_h .dsense_pos::text").extract_first()
@@ -374,7 +374,7 @@ class MeaningsSpider(Spider):
                 #         slice_number = 0
                 #     slice_number += 1
 
-                if word is None:
+                if not word:
                     word = response.css(".hw.dhw").css("::text").extract_first()
                     domain = section.css(".ddomain").css("::text").extract()
                     word_meaning = section.css(".ddef_d").css("::text").extract()
