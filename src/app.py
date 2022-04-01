@@ -8,6 +8,8 @@ import json
 import re
 
 import requests
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 import validators
 import requests_random_user_agent
 from bs4 import BeautifulSoup
@@ -51,8 +53,12 @@ HEADERS = {
     'Referer': 'https://www.google.com'
 }
 
-s = requests.Session()
-s.headers.update(HEADERS)
+session = requests.Session()
+session.headers.update(HEADERS)
+retry = Retry(total=5, connect=3, backoff_factor=0.5)
+adapter = HTTPAdapter(max_retries=retry)
+session.mount('http://', adapter)
+session.mount('https://', adapter)
 
 
 def get_webpage(word_url):
@@ -64,8 +70,8 @@ def get_webpage(word_url):
             # print("Found")
             break
     if not r_text:
-        print(s.headers['User-Agent'], s.headers['Referer'])
-        r_text = s.get(word_url).text
+        print(session.headers['User-Agent'], session.headers['Referer'])
+        r_text = session.get(word_url, verify=False).text
         CONTAINER['requests'].append((word_url, r_text))
     return r_text
 
