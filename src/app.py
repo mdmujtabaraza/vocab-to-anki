@@ -7,6 +7,7 @@ import time
 import json
 import re
 
+import urllib3
 import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
@@ -54,11 +55,13 @@ HEADERS = {
 }
 
 session = requests.Session()
-session.headers.update(HEADERS)
-retry = Retry(total=5, connect=3, backoff_factor=0.5)
-adapter = HTTPAdapter(max_retries=retry)
-session.mount('http://', adapter)
-session.mount('https://', adapter)
+# session.headers.update(HEADERS)
+# retry = Retry(total=5, connect=3, backoff_factor=0.5)
+# adapter = HTTPAdapter(max_retries=retry)
+# session.mount('http://', adapter)
+# session.mount('https://', adapter)
+
+http = urllib3.PoolManager(timeout=urllib3.Timeout(connect=1.0, read=2.0))
 
 
 def get_webpage(word_url):
@@ -70,8 +73,20 @@ def get_webpage(word_url):
             # print("Found")
             break
     if not r_text:
-        print(session.headers['User-Agent'], session.headers['Referer'])
-        r_text = session.get(word_url, verify=False).text
+        headers = {'User-Agent': session.headers['User-Agent'], 'Referer': 'https://www.google.com'}
+        # TODO: select random URL
+        # TODO: if bad response on selcting cached 1st goto original. if error on 1st goto cached
+        try:
+            response = http.request('GET', word_url, headers=headers, retries=urllib3.Retry(5, redirect=2))
+        except:
+            gcurl = "https://webcache.googleusercontent.com/search?q=cache:" + word_url
+            response = http.request('GET', gcurl, headers=headers, retries=urllib3.Retry(5, redirect=2))
+        r_text = response.data
+        print(response.status)
+
+        # print(session.headers['User-Agent'], session.headers['Referer'])
+        # r_text = session.get(word_url, verify=False).text
+
         CONTAINER['requests'].append((word_url, r_text))
     return r_text
 
