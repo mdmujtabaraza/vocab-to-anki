@@ -4,12 +4,11 @@ channels:
 dependencies:
   - python=3.8
   - pip
-  - twisted
-  - scrapy
+  - beautifulsoup4
+  - requests
   - genanki
-  - validators
   - gtts
+  - validators
   - pip:
-      - scrapy-fake-useragent
       - kivy[full]
       - kivymd

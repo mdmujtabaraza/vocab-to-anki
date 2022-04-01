@@ -1,9 +1,6 @@
 import os
 import platform
 import subprocess
-# from multiprocessing import Process, Queue
-from threading import Thread
-from queue import Queue
 import webbrowser
 import validators
 from datetime import datetime as dt
@@ -12,7 +9,6 @@ import requests
 import json
 import re
 
-from twisted.internet import reactor
 from kivy import platform as kplatform
 from kivymd.app import MDApp
 from kivymd.toast import toast
@@ -28,8 +24,6 @@ from kivymd.uix.toolbar import MDToolbar
 from kivymd.uix.expansionpanel import MDExpansionPanel, MDExpansionPanelTwoLine
 from kivymd.uix.label import MDLabel, MDIcon
 from kivymd.uix.gridlayout import MDGridLayout
-import kivymd
-import kivy
 from kivy.config import Config
 from kivy.uix.widget import Widget
 from kivymd.uix.textfield import MDTextField
@@ -37,16 +31,8 @@ from kivymd.uix.floatlayout import FloatLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.utils import get_color_from_hex
-from gtts import gTTS
-import scrapy
-from scrapy import signals
-from scrapy.http.request import Request
-from scrapy.utils.project import get_project_settings
-from scrapy.crawler import CrawlerRunner, CrawlerProcess
 
-from src.dict_scraper.spiders.cambridge import CambridgeSpider, MeaningsSpider
-from src.dict_scraper.items import CambridgeDictionaryItem
-from src.lib.json_to_apkg import JsonToApkg
+from src.dict_scraper.spiders import cambridge
 
 # os.environ["KIVY_NO_CONSOLELOG"] = "1"
 # kivy.require('1.9.0')
@@ -59,7 +45,12 @@ DICTIONARIES = {
     "Oxford": "https://www.oxfordlearnersdictionaries.com/definition/english/",
     "Vocabulary.com": "https://www.vocabulary.com/dictionary/",
 }
-
+HEADERS = {
+    'User-Agent':
+        'Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36 (KHTML, like Gecko) '
+        'Chrome/85.0.4183.140 Mobile Safari/537.36 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+    'Referer': 'https://www.google.com'
+}
 
 # class UrlCrawlerScript(Process):
 #     def __init__(self, spider, q, *args):
@@ -74,21 +65,17 @@ DICTIONARIES = {
 #         deferred.addBoth(lambda _: reactor.stop())
 #         reactor.run()
 
-def run_spider(runner, spider, *args):
-    q = Queue()
-    runner.crawl(spider, q, args)
-    if not reactor.running:
-        Thread(target=reactor.run).start()
-    if spider is MeaningsSpider:
-        CONTAINER['meanings'] = q.get()[0]
-    else:  # spider is CambridgeSpider:
-        CONTAINER['dictionary'] = q.get()[0]
 
-
-crawler_runner = CrawlerRunner(get_project_settings())
+def run_spider(soup_spider, url, headers, *args, **kwargs):
+    spider = soup_spider(url, headers, *args, **kwargs)
+    results = spider.parse()
+    if soup_spider is cambridge.MeaningsSpider:
+        CONTAINER['meanings'] = results
+    else:  # spider is cambridge.CambridgeSpider:
+        CONTAINER['dictionary'] = results
+    return results
 
 # ----------------------------------- KIVY -------------------------------------
-
 
 # Window.size = (500, 400)
 
@@ -341,7 +328,7 @@ class MenuScreen(Screen):
 
     def generate_flashcard(self, btn, section_tuple):
         print(section_tuple)
-        run_spider(crawler_runner, CambridgeSpider, CONTAINER['url'], self.tld, section_tuple)
+        extracted_dictionary = cambridge.CambridgeSpider(CONTAINER['url'], HEADERS, self.tld, section_tuple).parse()
         MDApp.get_running_app().soft_restart()
         self.dialog_popup(
             "Open Anki Package?",
@@ -399,12 +386,12 @@ class MenuScreen(Screen):
             # gcurl = "https://webcache.googleusercontent.com/search?q=cache:" + word_url
 
             CONTAINER['url'] = word_url
-            run_spider(crawler_runner, MeaningsSpider, word_url)
+            extracted_meanings = cambridge.MeaningsSpider(word_url, HEADERS).parse()
+            # CONTAINER['meanings'] = extracted_meanings
 
             # self.dialog_popup("Processing...", "Please wait. Generating Flashcard..")
-            # print(CONTAINER['meanings'])
             meanings_screen = self.manager.get_screen("meanings_screen")
-            for meaning in CONTAINER['meanings']:
+            for meaning in extracted_meanings:
                 section_ids = meaning['cid']
                 word = meaning['word']
                 guide_word = meaning['gw']

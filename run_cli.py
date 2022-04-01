@@ -1,10 +1,7 @@
-from scrapy.utils.project import get_project_settings
-from scrapy.crawler import CrawlerRunner
-from twisted.internet import reactor
 import time
 
 from src.app_cli import run_spider
-from src.dict_scraper.spiders.cambridge import MeaningsSpider
+from src.dict_scraper.spiders import cambridge
 
 
 if __name__ == '__main__':
@@ -15,9 +12,14 @@ if __name__ == '__main__':
     # # print(response.content)
     # CONTAINER['url'] = gcurl
 
-    run_spider(MeaningsSpider, word_url)
-    time.sleep(5)
-    run_spider(MeaningsSpider, word_url2)
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+        'Referer': 'https://www.google.com'
+    }
+
+    print(run_spider(cambridge.MeaningsSpider, word_url, headers))
+    time.sleep(20)
+    print(run_spider(cambridge.MeaningsSpider, word_url2, headers))
 
     # run_spider(CambridgeSpider, gcurl, "com", "cbed-2-4", False)  # dt.now().strftime("%Y%m%d%H%M%S")
     # run_spider("https://dictionary.cambridge.org/dictionary/english/water", "com", dt.now().strftime("%Y%m%d%H%M%S"))

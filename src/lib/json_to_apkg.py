@@ -21,6 +21,15 @@ import genanki
 #     ]
 # )
 
+# pronunciation_meaning = Field()
+# pronunciation_sentence = Field()
+# guide_word = Field()
+# TODO: add other fields
+# or phonemic_scripts = {'us': '', 'uk': ''}
+# or pronunciations = {'us': '', 'uk': ''}
+# image = Field()
+# TODO: what if there are other types of the same word for ex: noun, verb, adverb...
+
 
 def generate_cloze(phrase: str):
     n = len(phrase) - phrase.count(' ')
