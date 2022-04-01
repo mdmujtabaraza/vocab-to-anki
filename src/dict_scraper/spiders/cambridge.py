@@ -3,7 +3,6 @@ import re
 
 import requests
 from gtts import gTTS
-from bs4 import BeautifulSoup
 from bs4.element import ResultSet, Tag
 
 from src.lib.json_to_apkg import JsonToApkg
@@ -40,11 +39,8 @@ def extract_text(data, join_char=''):
 
 
 class MeaningsSpider:
-    def __init__(self, url, headers, *args, **kwargs):
-        self.url = url
-        self.headers = headers
-        self.result = requests.get(self.url, headers=self.headers)
-        self.soup = BeautifulSoup(self.result.text, "html.parser")
+    def __init__(self, soup, *args, **kwargs):
+        self.soup = soup
 
     def parse(self):
         # print(response.request.headers.get('Referer', None))
@@ -180,13 +176,11 @@ class MeaningsSpider:
 
 
 class CambridgeSpider:
-    def __init__(self, url, headers, *args, **kwargs):
-        self.url = url
-        self.headers = headers
+    def __init__(self, soup, *args, **kwargs):
+        # print(url, headers, args)
+        self.soup = soup
         self.tld = args[0]
         self.section_tuple = args[1]
-        self.result = requests.get(self.url, headers=self.headers)
-        self.soup = BeautifulSoup(self.result.text, "html.parser")
 
     # allowed_domains = ['dictionary.cambridge.org']
     # allowed_domains = ['web.archive.org']

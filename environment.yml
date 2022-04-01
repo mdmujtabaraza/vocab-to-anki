@@ -12,3 +12,4 @@ dependencies:
   - pip:
       - kivy[full]
       - kivymd
+      - requests-random-user-agent

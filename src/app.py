@@ -2,13 +2,15 @@ import os
 import platform
 import subprocess
 import webbrowser
-import validators
 from datetime import datetime as dt
 import time
-import requests
 import json
 import re
 
+import requests
+import validators
+import requests_random_user_agent
+from bs4 import BeautifulSoup
 from kivy import platform as kplatform
 from kivymd.app import MDApp
 from kivymd.toast import toast
@@ -37,7 +39,7 @@ from src.dict_scraper.spiders import cambridge
 # os.environ["KIVY_NO_CONSOLELOG"] = "1"
 # kivy.require('1.9.0')
 
-CONTAINER = {'url': '', 'dictionary': [], 'meanings': []}
+CONTAINER = {'current_url': '', 'requests': []}
 DICTIONARIES = {
     "Cambridge": "https://dictionary.cambridge.org/dictionary/english/",
     "Dictionary.com": "https://www.dictionary.com/browse/",
@@ -46,34 +48,26 @@ DICTIONARIES = {
     "Vocabulary.com": "https://www.vocabulary.com/dictionary/",
 }
 HEADERS = {
-    'User-Agent':
-        'Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36 (KHTML, like Gecko) '
-        'Chrome/85.0.4183.140 Mobile Safari/537.36 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
     'Referer': 'https://www.google.com'
 }
 
-# class UrlCrawlerScript(Process):
-#     def __init__(self, spider, q, *args):
-#         Process.__init__(self)
-#         self.runner = CrawlerRunner(get_project_settings())
-#         self.spider = spider
-#         self.q = q
-#         self.args = args
-#
-#     def run(self):
-#         deferred = self.runner.crawl(self.spider, self.q, self.args)
-#         deferred.addBoth(lambda _: reactor.stop())
-#         reactor.run()
+s = requests.Session()
+s.headers.update(HEADERS)
 
 
-def run_spider(soup_spider, url, headers, *args, **kwargs):
-    spider = soup_spider(url, headers, *args, **kwargs)
-    results = spider.parse()
-    if soup_spider is cambridge.MeaningsSpider:
-        CONTAINER['meanings'] = results
-    else:  # spider is cambridge.CambridgeSpider:
-        CONTAINER['dictionary'] = results
-    return results
+def get_webpage(word_url):
+    r_text = None
+    global CONTAINER
+    for request in CONTAINER['requests']:
+        if word_url in request[0]:
+            r_text = request[1]
+            # print("Found")
+            break
+    if not r_text:
+        print(s.headers['User-Agent'], s.headers['Referer'])
+        r_text = s.get(word_url).text
+        CONTAINER['requests'].append((word_url, r_text))
+    return r_text
 
 # ----------------------------------- KIVY -------------------------------------
 
@@ -328,7 +322,10 @@ class MenuScreen(Screen):
 
     def generate_flashcard(self, btn, section_tuple):
         print(section_tuple)
-        extracted_dictionary = cambridge.CambridgeSpider(CONTAINER['url'], HEADERS, self.tld, section_tuple).parse()
+        r_text = get_webpage(CONTAINER['current_url'])
+        extracted_dictionary = cambridge.CambridgeSpider(
+            BeautifulSoup(r_text, "html.parser"), self.tld, section_tuple
+        ).parse()
         MDApp.get_running_app().soft_restart()
         self.dialog_popup(
             "Open Anki Package?",
@@ -339,7 +336,7 @@ class MenuScreen(Screen):
     def show_data(self):
         # word_url = self.word_url.text
         word_url = self.ids.word_input.text
-        url_found = False
+        dict_name = None
 
         if not validators.url(word_url):
             self.toast("URL not found. Please try again")
@@ -359,11 +356,11 @@ class MenuScreen(Screen):
         #     # 'DEPTH_LIMIT': 2,
         #     # 'CLOSESPIDER_PAGECOUNT': 3,
         # })
-        for dict_url in DICTIONARIES.values():
+        for name, dict_url in DICTIONARIES.items():
             if dict_url in word_url:
-                url_found = True
+                dict_name = name
                 break
-        if url_found:
+        if dict_name:
             # d = runner.crawl(
             #     CambridgeSpider,
             #     url=word_url,
@@ -384,9 +381,9 @@ class MenuScreen(Screen):
             #     return False
 
             # gcurl = "https://webcache.googleusercontent.com/search?q=cache:" + word_url
-
-            CONTAINER['url'] = word_url
-            extracted_meanings = cambridge.MeaningsSpider(word_url, HEADERS).parse()
+            CONTAINER['current_url'] = word_url
+            r_text = get_webpage(word_url)
+            extracted_meanings = cambridge.MeaningsSpider(BeautifulSoup(r_text, "html.parser")).parse()
             # CONTAINER['meanings'] = extracted_meanings
 
             # self.dialog_popup("Processing...", "Please wait. Generating Flashcard..")
@@ -484,7 +481,7 @@ class MyApp(MDApp):
         self.root.clear_widgets()
         self.stop()
         global CONTAINER
-        CONTAINER = {'url': '', 'dictionary': [], 'meanings': []}
+        CONTAINER['current_url'] = ''
         return MyApp().run()
 
     def change_screen(self):
@@ -500,7 +497,7 @@ class MyApp(MDApp):
 
     def soft_restart(self):
         global CONTAINER
-        CONTAINER = {'url': '', 'dictionary': [], 'meanings': []}
+        CONTAINER['current_url'] = ''
         self.root.transition.direction = 'right'
         self.root.transition.duration = 0.5  # 0.5 second
         self.root.current = 'menu_screen'
