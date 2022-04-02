@@ -32,6 +32,8 @@ import genanki
 
 
 def generate_cloze(phrase: str):
+    # print("Starting generate_cloze..")
+    # print(phrase)
     n = len(phrase) - phrase.count(' ')
     if (n % 2) == 0:
         u_count = int(n/2)
@@ -68,8 +70,12 @@ def generate_cloze(phrase: str):
         cloze_list[temp_index] = cloze_text
         phrase_list.remove(temp_word)
         # print(phrase_list)
+        if not phrase_list:
+            # print("Avoiding error")
+            u_count = 0
         # print(cloze_list)
         # print("end of loop:", temp_len, u_count)
+    # print("No Problem in generate_cloze")
     return ' '.join(cloze_list)
 
 
@@ -80,6 +86,7 @@ class JsonToApkg:
 
     def generate_apkg(self):
         # create/initialize model
+        # print('before my_model')
         my_model = genanki.Model(
             1646879431108,  # todo: change id and also create new customized structure
             name='English Vocab',
@@ -112,6 +119,7 @@ class JsonToApkg:
         # just do these steps
         # automatic fill
         # todo: cloze, picture, synonyms, arrange in order, if sound not there then?
+        # print('before list_of_fields')
         list_of_fields = [
             self.j_dict.get("word", ""),
             self.j_dict.get("part_of_speech", ""),
@@ -125,23 +133,27 @@ class JsonToApkg:
         ]
         # list_of_fields = [x for x in self.j_dict.values()]
 
+        # print('Before my_note')
         my_note = genanki.Note(
             model=my_model,
             fields=list_of_fields
         )
-
+        # print('Before my_deck')
         my_deck = genanki.Deck(
             1646145285163,  # todo: change id and name
             "English Vocabulary (British Accent)")
+        # print('before adding a note to deck')
         my_deck.add_note(my_note)
 
         # add media
+        # print('before my_package')
         my_package = genanki.Package(my_deck)
         my_package.media_files = ['media/' + self.j_dict["pronunciation_word"][7:-1:]]
         # generate apkg
         # my_package.write_to_file('output-' + self.j_dict["word"] + '.apkg')
         # apkg_filename = 'output-' + dt.now().strftime("%Y%m%d%H%M%S") + '.apkg'
         apkg_filename = 'output' + '.apkg'
+        # print('before writing')
         my_package.write_to_file(apkg_filename)
         return apkg_filename
 

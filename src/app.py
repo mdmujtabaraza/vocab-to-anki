@@ -44,11 +44,11 @@ from src.dict_scraper.spiders import cambridge
 
 CONTAINER = {'current_url': '', 'requests': []}
 DICTIONARIES = {
-    "Cambridge": "https://dictionary.cambridge.org/dictionary/english/",
-    "Dictionary.com": "https://www.dictionary.com/browse/",
-    "Merriam-Webster": "https://www.merriam-webster.com/dictionary/",
-    "Oxford": "https://www.oxfordlearnersdictionaries.com/definition/english/",
-    "Vocabulary.com": "https://www.vocabulary.com/dictionary/",
+    "Cambridge": "dictionary.cambridge.org/dictionary/english/",
+    "Dictionary.com": "dictionary.com/browse/",
+    "Merriam-Webster": "merriam-webster.com/dictionary/",
+    "Oxford": "oxfordlearnersdictionaries.com/definition/english/",
+    "Vocabulary.com": "vocabulary.com/dictionary/",
 }
 HEADERS = {
     'Referer': 'https://www.google.com'
@@ -64,13 +64,22 @@ session = requests.Session()
 http = urllib3.PoolManager(timeout=urllib3.Timeout(connect=1.0, read=2.0))
 
 
+def remove_http_www(url):
+    if 'http' in url:
+        url = url.split('//')[1]
+    if 'www' in url:
+        url = re.sub('www.', '', url)
+    return url
+
+
 def get_webpage(word_url):
+    url = remove_http_www(word_url)
     r_text = None
     global CONTAINER
     for request in CONTAINER['requests']:
-        if word_url in request[0]:
+        if url == request[0]:
+            print("Found")
             r_text = request[1]
-            # print("Found")
             break
     if not r_text:
         headers = {'User-Agent': session.headers['User-Agent'], 'Referer': 'https://www.google.com'}
@@ -81,14 +90,30 @@ def get_webpage(word_url):
         except:
             gcurl = "https://webcache.googleusercontent.com/search?q=cache:" + word_url
             response = http.request('GET', gcurl, headers=headers, retries=urllib3.Retry(5, redirect=2))
+            url = gcurl
         r_text = response.data
         print(response.status)
+        print(response.getheaders())
 
         # print(session.headers['User-Agent'], session.headers['Referer'])
         # r_text = session.get(word_url, verify=False).text
 
-        CONTAINER['requests'].append((word_url, r_text))
+        CONTAINER['requests'].append((url, r_text))
     return r_text
+
+
+def clear_request(word_url=None):
+    global CONTAINER
+    if not word_url:
+        CONTAINER['requests'] = []
+        return True
+    url = remove_http_www(word_url)
+    for request in CONTAINER['requests']:
+        if url == request[0]:
+            print("Found")
+            CONTAINER['requests'].remove(request)
+            return True
+    return False
 
 # ----------------------------------- KIVY -------------------------------------
 
@@ -355,13 +380,12 @@ class MenuScreen(Screen):
         )
 
     def show_data(self):
-        # word_url = self.word_url.text
-        word_url = self.ids.word_input.text
+        word_url = self.ids.word_input.text.split('#')[0].split('?')[0]
         dict_name = None
-
         if not validators.url(word_url):
             self.toast("URL not found. Please try again")
             return False
+        # word_url = self.word_url.text
         # todo: extract word from word_url
         # url_list = word_url.split('/')
         # word = url_list[-2] if not url_list[-1] else url_list[-1]
@@ -405,8 +429,11 @@ class MenuScreen(Screen):
             CONTAINER['current_url'] = word_url
             r_text = get_webpage(word_url)
             extracted_meanings = cambridge.MeaningsSpider(BeautifulSoup(r_text, "html.parser")).parse()
+            if not extracted_meanings:
+                clear_request(word_url)
+                self.toast("Invalid URL. Please try again")
+                return False
             # CONTAINER['meanings'] = extracted_meanings
-
             # self.dialog_popup("Processing...", "Please wait. Generating Flashcard..")
             meanings_screen = self.manager.get_screen("meanings_screen")
             for meaning in extracted_meanings:
@@ -521,6 +548,8 @@ class MyApp(MDApp):
         CONTAINER['current_url'] = ''
         self.root.transition.direction = 'right'
         self.root.transition.duration = 0.5  # 0.5 second
+        meanings_screen = self.root.get_screen("meanings_screen")
+        meanings_screen.ids.meanings_container.clear_widgets()
         self.root.current = 'menu_screen'
 
 

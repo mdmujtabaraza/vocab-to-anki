@@ -8,7 +8,7 @@ import requests_random_user_agent
 
 from src.app_cli import run_spider
 from src.dict_scraper.spiders import cambridge
-
+from src.lib.json_to_apkg import generate_cloze
 
 if __name__ == '__main__':
     word_url = "https://dictionary.cambridge.org/dictionary/english/sit"
@@ -18,13 +18,14 @@ if __name__ == '__main__':
         'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
         'Referer': 'https://www.google.com'
     }
+    # phrase = generate_cloze("an eye for an eye")
     # # response = requests.get(gcurl, headers=headers)
     # # print(response.content)
     # CONTAINER['url'] = gcurl
 
-    http = urllib3.PoolManager(timeout=urllib3.Timeout(connect=1.0, read=2.0))
-    response = http.request('GET', word_url, headers=headers, retries=urllib3.Retry(5, redirect=2))
-    print(response.status)
+    # http = urllib3.PoolManager(timeout=urllib3.Timeout(connect=1.0, read=2.0))
+    # response = http.request('GET', word_url, headers=headers, retries=urllib3.Retry(5, redirect=2))
+    # print(response.status)
     # print(response.data)
     # print(response["headers"])
 

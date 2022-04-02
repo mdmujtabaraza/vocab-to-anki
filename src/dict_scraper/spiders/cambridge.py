@@ -12,6 +12,26 @@ allowed_domains = ['dictionary.cambridge.org']
 start_urls = ['https://dictionary.cambridge.org/']
 
 
+class SuspiciousOperation(Exception):
+    """The user did something suspicious"""
+
+
+def get_valid_filename(name):
+    """
+    Return the given string converted to a string that can be used for a clean
+    filename. Remove leading and trailing spaces; convert other spaces to
+    underscores; and remove anything that is not an alphanumeric, dash,
+    underscore, or dot.
+    >>> get_valid_filename("john's portrait in 2004.jpg")
+    'johns_portrait_in_2004.jpg'
+    """
+    s = str(name).strip().replace(" ", "-")
+    s = re.sub(r"(?u)[^-\w.]", "", s)
+    if s in {"", ".", ".."}:
+        raise SuspiciousOperation("Could not derive file name from '%s'" % name)
+    return s
+
+
 def get_tree(branch, seen, *args, **kwargs):
     out = []
     for d in branch.find_all("div", class_="cid"):
@@ -50,73 +70,88 @@ class MeaningsSpider:
         count = 0
 
         sections = self.soup.select(".dsense")
-        print(len(sections))
+        for section in sections:
+            section_id = get_tree(section, set())
+            print(section_id)
+        idiom_block = self.soup.select(".idiom-block")
         last_true_section_id = None
         for section in sections:
             section_id = get_tree(section, set())
-            more_words = {section_id[0]: {}}
 
+            more_words = {section_id[0]: {}}
             # dphrase_block = section.css(".dphrase-block").extract()
             parts_of_speech = section.select(".dsense_pos")
             if not parts_of_speech:
                 in_dsense = False
                 print('not in_dsense:', section_id)
-                word = extract_text(section.select_one(".dphrase-title b"))
-                guide_word = ''
-                part_of_speech = self.soup.select_one(f"#{section_id[0]} ~ .dpos-h .dpos")
-                if not part_of_speech:
-                    # print("pos None")
-                    if last_true_section_id.split('-')[0] == section_id[0].split('-')[0]:
-                        part_of_speech = extract_text(self.soup.select_one(f"#{last_true_section_id} ~ .dsense_h .dsense_pos"))
-                        # print("last")
-                    else:
-                        cid = '-'.join(section_id[0].split('-', 2)[:2])
-                        part_of_speech = extract_text(self.soup.select_one(f"#{cid} ~ .dpos-h .dpos"))
-                        # print("last not correct")
-                # combinators = ['', '>', '+', '~']
-                # for combinator in combinators:
-                #     part_of_speech = response.css(f"#{cid}{combinator} .dpos-h .dpos").css("::text").extract_first()
-                #     print(f"#{cid}{combinator} .dpos-h .dpos")
-                #     if part_of_speech is not None:
-                #         print("correct")
-                #         break
-                # slice_number = 0
-                # while bool(re.findall('[0-9]+', section_id[0].rsplit('-', slice_number)[0])) and part_of_speech is None:
-                #     combinators = ['', '>', '+', '~']
-                #     for combinator in combinators:
-                #         part_of_speech = response.css(f"#{section_id[0].rsplit('-', slice_number)[0]}{combinator} "
-                #                                       f".dpos-h .dpos").css("::text").extract_first()
-                #         # print(f"#{section_id[0][:slice_number]}{combinator} .dpos-h .dpos")
-                #         if part_of_speech is not None:
-                #             # print("correct")
-                #             break
-                #     if slice_number is None:
-                #         slice_number = 0
-                #     slice_number += 1
-                if not word:
-                    word = extract_text(self.soup.select_one(".hw.dhw"))
-                    domain = extract_text(section.select(".ddomain"), join_char='/')
-                    word_meaning = extract_text(section.select(".ddef_d"))
-                    dlu = extract_text(section.select(".dlu"), join_char='/')
-                    cl = extract_text(section.select(".cl"), join_char=' ')
-                    if domain:
-                        word += f" ({domain})"
-                        if dlu:
-                            word += f" ({dlu})"
-                        if cl:
-                            word += f" ({cl})"
-                    elif dlu:
-                        word = f"{dlu}"
-                        if cl:
-                            word += f" ({cl})"
-                    elif cl:
-                        word = f"{cl}"
-                    else:
-                        word += f" ({word_meaning.split(':')[0]})"
+                if idiom_block:
+                    # cid = '-'.join(section_ids[0].split('-', 2)[:2])
+                    # word = extract_text(self.soup.select(f"#{cid} ~ .idiom-block b"))
+                    word = extract_text(self.soup.select_one(f".idiom-block b"))
+                    guide_word = '(' + extract_text(section.select(f".dsense_b .ddef_d .query"), join_char=' ') + ')'
+                    part_of_speech = 'idiom'
+                else:
+                    word = extract_text(section.select_one(".dphrase-title b"))
+                    guide_word = ''
+                    part_of_speech = self.soup.select_one(f"#{section_id[0]} ~ .dpos-h .dpos")
+                    # print("before not pos")
+                    if not part_of_speech:
+                        # print("pos None")
+                        if last_true_section_id is not None:
+                            if last_true_section_id.split('-')[0] == section_id[0].split('-')[0]:
+                                part_of_speech = extract_text(self.soup.select_one(f"#{last_true_section_id} ~ .dsense_h .dsense_pos"))
+                                # print("last")
+                            else:
+                                cid = '-'.join(section_id[0].split('-', 2)[:2])
+                                part_of_speech = extract_text(self.soup.select_one(f"#{cid} ~ .dpos-h .dpos"))
+                                # print("last not correct")
+                        else:
+                            cid = '-'.join(section_id[0].split('-', 2)[:2])
+                            part_of_speech = extract_text(self.soup.select_one(f"#{cid} ~ .dpos-h .dpos"))
+                            # print("last not correct")
+                    # combinators = ['', '>', '+', '~']
+                    # for combinator in combinators:
+                    #     part_of_speech = response.css(f"#{cid}{combinator} .dpos-h .dpos").css("::text").extract_first()
+                    #     print(f"#{cid}{combinator} .dpos-h .dpos")
+                    #     if part_of_speech is not None:
+                    #         print("correct")
+                    #         break
+                    # slice_number = 0
+                    # while bool(re.findall('[0-9]+', section_id[0].rsplit('-', slice_number)[0])) and part_of_speech is None:
+                    #     combinators = ['', '>', '+', '~']
+                    #     for combinator in combinators:
+                    #         part_of_speech = response.css(f"#{section_id[0].rsplit('-', slice_number)[0]}{combinator} "
+                    #                                       f".dpos-h .dpos").css("::text").extract_first()
+                    #         # print(f"#{section_id[0][:slice_number]}{combinator} .dpos-h .dpos")
+                    #         if part_of_speech is not None:
+                    #             # print("correct")
+                    #             break
+                    #     if slice_number is None:
+                    #         slice_number = 0
+                    #     slice_number += 1
+                    if not word:
+                        word = extract_text(self.soup.select_one(".hw.dhw"))
+                        domain = extract_text(section.select(".ddomain"), join_char='/')
+                        word_meaning = extract_text(section.select(".ddef_d"))
+                        dlu = extract_text(section.select(".dlu"), join_char='/')
+                        cl = extract_text(section.select(".cl"), join_char=' ')
+                        if domain:
+                            word += f" ({domain})"
+                            if dlu:
+                                word += f" ({dlu})"
+                            if cl:
+                                word += f" ({cl})"
+                        elif dlu:
+                            word = f"{dlu}"
+                            if cl:
+                                word += f" ({cl})"
+                        elif cl:
+                            word = f"{cl}"
+                        else:
+                            word += f" ({word_meaning.split(':')[0]})"
             else:
                 in_dsense = True
                 print('in_dsense:', section_id)
-
                 last_true_section_id = section_id[0]
 
                 # if len(section_id) > 1:
@@ -131,38 +166,45 @@ class MeaningsSpider:
                 #     ignore this word
                 #   else meaning found then:
                 #     keep this word
-
-                extracted_meanings = extract_text(section.select(".dsense_b > .ddef_block .ddef_d"))
-                meanings_list = extracted_meanings.split(':')[:-1]
-
-                if len(section_id) <= 1:
-                    if len(meanings_list) > 1:
-                        for i in range(len(meanings_list)):
-                            more_words[section_id[0]][i + 1] = meanings_list[i]
+                if idiom_block:
+                    # print("IDIOM")
+                    # cid = '-'.join(section_ids[0].split('-', 2)[:2])
+                    # word = extract_text(self.soup.select(f"#{cid} ~ .idiom-block b"))
+                    word = extract_text(self.soup.select_one(f".idiom-block b"))
+                    guide_word = ''
+                    part_of_speech = 'idiom'
                 else:
-                    if meanings_list:
-                        for i in range(len(meanings_list)):
-                            more_words[section_id[0]][i + 1] = meanings_list[i]
-                    for bid in section_id[1:]:
-                        blue_block_title = extract_text(section.select(f"#{bid} ~ .dphrase_h b"))
-                        if not blue_block_title:
-                            blue_block_meaning = extract_text(section.select(f"#{bid} ~ .dphrase_b .ddef_d"))[:-1]
-                            more_words[section_id[0]][bid] = blue_block_meaning
-                        else:
-                            more_words[section_id[0]][bid] = blue_block_title
-                # if word has multiple meanings:
-                #   create another instances of those meanings
-                word = extract_text(section.select_one(".dsense_hw"))
-                guide_word = '(' + extract_text(section.select_one(".dsense_gw span")) + ')'
-                # b = section.css("b").css("::text").extract()
-                # if b:
-                #     if guide_word:
-                #         guide_word += f" ({' '.join(b)})"
-                #     else:
-                #         guide_word = f" ({' '.join(b)})"
-                part_of_speech = extract_text(section.select_one(".dsense_pos"))
-                # definitions = section.css(".ddef_d").css("::text").extract()
-                # sentences = section.css(".deg").css("::text").extract()
+                    extracted_meanings = extract_text(section.select(".dsense_b > .ddef_block .ddef_d"))
+                    meanings_list = extracted_meanings.split(':')[:-1]
+
+                    if len(section_id) <= 1:
+                        if len(meanings_list) > 1:
+                            for i in range(len(meanings_list)):
+                                more_words[section_id[0]][i + 1] = meanings_list[i]
+                    else:
+                        if meanings_list:
+                            for i in range(len(meanings_list)):
+                                more_words[section_id[0]][i + 1] = meanings_list[i]
+                        for bid in section_id[1:]:
+                            blue_block_title = extract_text(section.select(f"#{bid} ~ .dphrase_h b"))
+                            if not blue_block_title:
+                                blue_block_meaning = extract_text(section.select(f"#{bid} ~ .dphrase_b .ddef_d"))[:-1]
+                                more_words[section_id[0]][bid] = blue_block_meaning
+                            else:
+                                more_words[section_id[0]][bid] = blue_block_title
+                    # if word has multiple meanings:
+                    #   create another instances of those meanings
+                    word = extract_text(section.select_one(".dsense_hw"))
+                    guide_word = '(' + extract_text(section.select_one(".dsense_gw span")) + ')'
+                    # b = section.css("b").css("::text").extract()
+                    # if b:
+                    #     if guide_word:
+                    #         guide_word += f" ({' '.join(b)})"
+                    #     else:
+                    #         guide_word = f" ({' '.join(b)})"
+                    part_of_speech = extract_text(section.select_one(".dsense_pos"))
+                    # definitions = section.css(".ddef_d").css("::text").extract()
+                    # sentences = section.css(".deg").css("::text").extract()
             if word:
                 word = re.sub("\s\s+", " ", word)
             if guide_word:
@@ -172,6 +214,7 @@ class MeaningsSpider:
             count += 1
 
         # print(count)
+        print(meanings)
         return meanings
 
 
@@ -237,6 +280,7 @@ class CambridgeSpider:
         # = #cid~ .dsense_b .ddef_d  (cbed-1-1, ..., cbed-1-8, )
 
         word = extract_text(self.soup.select_one(f".hw.dhw"))
+
         if in_dsense is True:
             # word = response.css(f"#{cid}~ .dsense_h .dsense_hw").css("::text").extract_first()
             if type(meaning) is tuple:
@@ -253,16 +297,23 @@ class CambridgeSpider:
                 meaning_text = extract_text(self.soup.select(f"#{cid} ~ .dsense_b .ddef_d"))
                 sentences = self.soup.select(f"#{cid} ~ .dsense_b .dexamp")
         else:  # in_dsense is False:
-            if len(section_ids) > 1:
-                cid = section_ids[1]
-                meaning_text = extract_text(self.soup.select(f"#{cid} ~ .dphrase_b .ddef_d"))
-                sentences = self.soup.select(f"#{cid} ~ .dphrase_b .dexamp")
+            if part_of_speech == 'idiom':
+                word = extract_text(self.soup.select_one(f".idiom-block b"))
+                # cid = '-'.join(section_ids[0].split('-', 2)[:2])
+                # word = extract_text(self.soup.select(f"#{cid} ~ .idiom-block b"))
+                meaning_text = extract_text(self.soup.select(f"#{section_ids[0]} ~ .dsense_b .ddef_d"))
+                sentences = self.soup.select(f"#{section_ids[0]} ~ .dsense_b .dexamp")
             else:
-                cid = section_ids[0]
-                meaning_text = extract_text(self.soup.select(f"#{cid} ~ .dsense_b .ddef_d"))
-                sentences = self.soup.select(f"#{cid} ~ .dsense_b .dexamp")
+                if len(section_ids) > 1:
+                    cid = section_ids[1]
+                    meaning_text = extract_text(self.soup.select(f"#{cid} ~ .dphrase_b .ddef_d"))
+                    sentences = self.soup.select(f"#{cid} ~ .dphrase_b .dexamp")
+                else:
+                    cid = section_ids[0]
+                    meaning_text = extract_text(self.soup.select(f"#{cid} ~ .dsense_b .ddef_d"))
+                    sentences = self.soup.select(f"#{cid} ~ .dsense_b .dexamp")
         # print("MeaningText:", meaning_text)
-        print("Sentences:", type(sentences), len(sentences), type(sentences[0]))
+        # print("Sentences:", type(sentences), len(sentences), type(sentences[0]))
 
         if tld == "co.uk":
             accent_tld = "uk"
@@ -314,8 +365,8 @@ class CambridgeSpider:
         # us_pronunciation = response.css(".us #ampaudio2 source::attr(src)").extract_first()  # amp-audio
 
         def download_audio() -> str:
-            filename = word + '_' + accent_tld + '.mp3'
-
+            filename = get_valid_filename(word + '_' + accent_tld + '.mp3')
+            # print(filename)
             tts = gTTS(word, lang='en', tld=tld)
             if not os.path.exists('media'):
                 os.makedirs('media')
@@ -358,14 +409,16 @@ class CambridgeSpider:
             'part_of_speech': part_of_speech,
             'meaning': meaning_text.split(':')[0],
             'sentences': ''.join(sentences_list),
-            'phonemic_script': '/' + phonemic_script + '/',
+            'phonemic_script': '' if not phonemic_script else '/' + phonemic_script + '/',
             'pronunciation_word': download_audio(),
-            'synonyms': f"<a href='https://www.thesaurus.com/browse/{word}'>Synonyms</a>"
+            'synonyms': f"<a href='https://www.thesaurus.com/browse/{re.sub(' ', '%20', word)}'>Synonyms</a>"
         }
         # dictionary_item['sentences'] = ''.join(sentences).split('.')[:2]  # ''.join(sentences)
         # dictionary_item['sentences'] = re.findall('.*?[.!?]', ''.join(sentences))[:2]
         # dictionary_item['us_phonemic_script'] = '/' + us_phonemic_script + '/'
         # dictionary_item['us_pronunciation'] = download_audio('us', us_pronunciation)
         jta = JsonToApkg(dictionary_item)
+        # print(dictionary_item)
         jta.generate_apkg()
+        # print("Generated.")
         return dictionary_item
