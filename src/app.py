@@ -9,12 +9,12 @@ import re
 
 import urllib3
 import requests
+from user_agent import generate_user_agent
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 import validators
-import requests_random_user_agent
 from bs4 import BeautifulSoup
-from kivy import platform as kplatform
+from kivy import require, platform as kplatform
 from kivymd.app import MDApp
 from kivymd.toast import toast
 from kivymd.uix.list import OneLineListItem, TwoLineListItem
@@ -40,7 +40,7 @@ from kivy.utils import get_color_from_hex
 from src.dict_scraper.spiders import cambridge
 
 # os.environ["KIVY_NO_CONSOLELOG"] = "1"
-# kivy.require('1.9.0')
+require('2.1.0')
 
 CONTAINER = {'current_url': '', 'requests': []}
 DICTIONARIES = {
@@ -51,17 +51,20 @@ DICTIONARIES = {
     "Vocabulary.com": "vocabulary.com/dictionary/",
 }
 HEADERS = {
+    'User-Agent': generate_user_agent(device_type='smartphone' if 'ANDROID_STORAGE' in os.environ else 'desktop'),
     'Referer': 'https://www.google.com'
 }
 
-session = requests.Session()
-# session.headers.update(HEADERS)
-# retry = Retry(total=5, connect=3, backoff_factor=0.5)
-# adapter = HTTPAdapter(max_retries=retry)
-# session.mount('http://', adapter)
-# session.mount('https://', adapter)
+print(HEADERS)
 
-http = urllib3.PoolManager(timeout=urllib3.Timeout(connect=1.0, read=2.0))
+session = requests.Session()
+session.headers.update(HEADERS)
+retry = Retry(total=5, connect=3, backoff_factor=0.5)
+adapter = HTTPAdapter(max_retries=retry)
+session.mount('http://', adapter)
+session.mount('https://', adapter)
+
+# http = urllib3.PoolManager(timeout=urllib3.Timeout(connect=1.0, read=2.0))
 
 
 def remove_http_www(url):
@@ -82,18 +85,17 @@ def get_webpage(word_url):
             r_text = request[1]
             break
     if not r_text:
-        headers = {'User-Agent': session.headers['User-Agent'], 'Referer': 'https://www.google.com'}
+        # headers = {'User-Agent': session.headers['User-Agent'], 'Referer': 'https://www.google.com'}
         # TODO: select random URL
         # TODO: if bad response on selcting cached 1st goto original. if error on 1st goto cached
         try:
-            response = http.request('GET', word_url, headers=headers, retries=urllib3.Retry(5, redirect=2))
+            response = session.get(word_url, verify=False)
         except:
             gcurl = "https://webcache.googleusercontent.com/search?q=cache:" + word_url
-            response = http.request('GET', gcurl, headers=headers, retries=urllib3.Retry(5, redirect=2))
+            response = session.get(gcurl, verify=False)
             url = gcurl
-        r_text = response.data
-        print(response.status)
-        print(response.getheaders())
+        r_text = response.text
+        print(response.status_code)
 
         # print(session.headers['User-Agent'], session.headers['Referer'])
         # r_text = session.get(word_url, verify=False).text
@@ -384,6 +386,7 @@ class MenuScreen(Screen):
         dict_name = None
         if not validators.url(word_url):
             self.toast("URL not found. Please try again")
+            self.dialog.dismiss()
             return False
         # word_url = self.word_url.text
         # todo: extract word from word_url
@@ -431,6 +434,7 @@ class MenuScreen(Screen):
             extracted_meanings = cambridge.MeaningsSpider(BeautifulSoup(r_text, "html.parser")).parse()
             if not extracted_meanings:
                 clear_request(word_url)
+                self.dialog.dismiss()
                 self.toast("Invalid URL. Please try again")
                 return False
             # CONTAINER['meanings'] = extracted_meanings
@@ -461,9 +465,11 @@ class MenuScreen(Screen):
                             )
                         )
                     )
+            self.dialog.dismiss()
             MDApp.get_running_app().change_screen()
         else:
             self.toast("Invalid URL. Please try again")
+            self.dialog.dismiss()
             return False
         # self.add_widget(MDLabel(
         #     text=f"Successfully generated flashcard for {word_url}..",

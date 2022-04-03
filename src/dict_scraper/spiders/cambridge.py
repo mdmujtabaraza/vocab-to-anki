@@ -411,7 +411,7 @@ class CambridgeSpider:
             'sentences': ''.join(sentences_list),
             'phonemic_script': '' if not phonemic_script else '/' + phonemic_script + '/',
             'pronunciation_word': download_audio(),
-            'synonyms': f"<a href='https://www.thesaurus.com/browse/{re.sub(' ', '%20', word)}'>Synonyms</a>"
+            'synonyms': f"<a href='https://www.thesaurus.com/browse/{word}'>Synonyms</a>"
         }
         # dictionary_item['sentences'] = ''.join(sentences).split('.')[:2]  # ''.join(sentences)
         # dictionary_item['sentences'] = re.findall('.*?[.!?]', ''.join(sentences))[:2]

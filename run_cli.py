@@ -1,5 +1,7 @@
 import os
 os.environ['UA_PLATFORM'] = "android"
+import logging
+
 import requests
 import urllib3
 import urllib
@@ -9,6 +11,26 @@ import requests_random_user_agent
 from src.app_cli import run_spider
 from src.dict_scraper.spiders import cambridge
 from src.lib.json_to_apkg import generate_cloze
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s:%(levelname)s:%(message)s')
+
+# File Handler
+# file_handler = logging.FileHandler('run_cli.log')
+# file_handler.setLevel(logging.ERROR)
+# file_handler.setFormatter(formatter)
+# logger.addHandler(file_handler)
+
+# Stream Handler
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(formatter)
+logger.addHandler(stream_handler)
+
+# logging.basicConfig(
+#     level=logging.DEBUG,
+#     format="%(asctime)s:%(levelname)s:%(message)s"
+# )  # filename='test.log'
 
 if __name__ == '__main__':
     word_url = "https://dictionary.cambridge.org/dictionary/english/sit"
@@ -23,9 +45,9 @@ if __name__ == '__main__':
     # # print(response.content)
     # CONTAINER['url'] = gcurl
 
-    # http = urllib3.PoolManager(timeout=urllib3.Timeout(connect=1.0, read=2.0))
-    # response = http.request('GET', word_url, headers=headers, retries=urllib3.Retry(5, redirect=2))
-    # print(response.status)
+    http = urllib3.PoolManager(timeout=urllib3.Timeout(connect=1.0, read=2.0))
+    response = http.request('GET', word_url, headers=headers, retries=urllib3.Retry(5, redirect=2))
+    logger.info(f"Status: {response.status}")
     # print(response.data)
     # print(response["headers"])
 

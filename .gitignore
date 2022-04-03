@@ -131,5 +131,6 @@ dmypy.json
 # Custom
 example_README.md
 media/
+output/
 output.apkg
 !buildozer.spec

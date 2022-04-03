@@ -82,6 +82,7 @@ ScreenManager:
                 text: 'Generate Anki Flashcard'
                 font_style: 'Button'
                 pos_hint: {'center_x': 0.5, 'center_y': 0.25}
+                on_press: root.dialog_popup("Finding meanings...", "Still faster than Windows update")
                 on_release: root.show_data()
 
 

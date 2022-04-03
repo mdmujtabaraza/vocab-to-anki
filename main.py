@@ -2,9 +2,6 @@
 # cd ./src/
 # scrapy genspider example example.com
 # pip list --format=freeze > requirements.txt
-from os import environ
-if 'ANDROID_STORAGE' in environ:
-    environ['UA_PLATFORM'] = "android"
 
 from src.app import MyApp
 

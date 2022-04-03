@@ -1,4 +1,4 @@
-name: vocab-to-anki
+name: vocab-to-anki-app
 channels:
   - conda-forge
 dependencies:
@@ -12,4 +12,4 @@ dependencies:
   - pip:
       - kivy[full]
       - kivymd
-      - requests-random-user-agent
+      - user_agent

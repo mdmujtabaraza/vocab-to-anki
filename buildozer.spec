@@ -13,7 +13,7 @@ package.domain = org.test
 source.dir = .
 
 # (list) Source files to include (let empty to include all the files)
-source.include_exts = py,png,jpg,kv,atlas,cfg,gitignore,txt,yml,mp3,apkg
+source.include_exts = py,png,jpg,kv,atlas,cfg,gitignore,txt,yml,mp3,apkg,json
 
 # (list) List of inclusions using pattern matching
 #source.include_patterns = assets/*,images/*.png
@@ -37,9 +37,9 @@ version = 0.1
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,beautifulsoup4,brotlipy,cached-property,certifi,cffi,charset-normalizer,chevron,click,colorama,cryptography,decorator,docutils,frozendict,genanki,gTTS,idna,Kivy,Kivy-Garden,kivymd,Pillow,pip,pycparser,Pygments,pyOpenSSL,PySocks,PyYAML,requests,requests-random-user-agent,setuptools,six,soupsieve,urllib3,validators,wheel
+requirements = python3,beautifulsoup4,brotlipy,cached-property,certifi,cffi,charset-normalizer,chevron,click,colorama,cryptography,decorator,docutils,frozendict,genanki,gTTS,idna,Kivy,Kivy-Garden,kivymd,Pillow,pip,pycparser,Pygments,pyOpenSSL,PySocks,PyYAML,requests,setuptools,six,soupsieve,urllib3,user-agent,validators,wheel
 
-# beautifulsoup4==4.10.0,brotlipy==0.7.0,cached-property==1.5.2,certifi==2021.10.8,cffi==1.15.0,charset-normalizer==2.0.12,chevron==0.14.0,click==8.1.2,colorama==0.4.4,cryptography==36.0.2,decorator==5.1.1,docutils==0.18.1,frozendict==2.3.0,genanki==0.13.0,gTTS==2.2.4,idna==3.3,Kivy==2.1.0,kivy-deps.angle==0.3.2,kivy-deps.glew==0.3.1,kivy-deps.gstreamer==0.3.3,kivy-deps.sdl2==0.4.5,Kivy-Garden==0.1.5,kivymd==0.104.2,Pillow==9.0.1,pip==22.0.4,pycparser==2.21,Pygments==2.11.2,pyOpenSSL==22.0.0,pypiwin32==223,PySocks==1.7.1,pywin32==303,PyYAML==6.0,requests==2.27.1,requests-random-user-agent==2022.1.23,setuptools==61.3.0,six==1.16.0,soupsieve==2.3.1,urllib3==1.26.9,validators==0.18.2,wheel==0.37.1,win-inet-pton==1.1.0
+# beautifulsoup4==4.10.0,brotlipy==0.7.0,cached-property==1.5.2,certifi==2021.10.8,cffi==1.15.0,charset-normalizer==2.0.12,chevron==0.14.0,click==8.1.2,colorama==0.4.4,cryptography==36.0.2,decorator==5.1.1,docutils==0.18.1,frozendict==2.3.0,genanki==0.13.0,gTTS==2.2.4,idna==3.3,Kivy==2.1.0,kivy-deps.angle==0.3.2,kivy-deps.glew==0.3.1,kivy-deps.gstreamer==0.3.3,kivy-deps.sdl2==0.4.5,Kivy-Garden==0.1.5,kivymd==0.104.2,Pillow==9.0.1,pip==22.0.4,pycparser==2.21,Pygments==2.11.2,pyOpenSSL==22.0.0,pypiwin32==223,PySocks==1.7.1,pywin32==303,PyYAML==6.0,requests==2.27.1,setuptools==61.3.0,six==1.16.0,soupsieve==2.3.1,urllib3==1.26.9,validators==0.18.2,wheel==0.37.1,win-inet-pton==1.1.0
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes
