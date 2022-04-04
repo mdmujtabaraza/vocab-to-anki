@@ -1,12 +1,13 @@
 import os
-import platform
 import subprocess
 import webbrowser
 from datetime import datetime as dt
 import time
 import json
 import re
+import traceback
 
+import bs4
 import urllib3
 import requests
 from user_agent import generate_user_agent
@@ -14,7 +15,7 @@ from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 import validators
 from bs4 import BeautifulSoup
-from kivy import require, platform as kplatform
+from kivy import require, platform
 from kivymd.app import MDApp
 from kivymd.toast import toast
 from kivymd.uix.list import OneLineListItem, TwoLineListItem
@@ -42,7 +43,7 @@ from src.dict_scraper.spiders import cambridge
 # os.environ["KIVY_NO_CONSOLELOG"] = "1"
 require('2.1.0')
 
-CONTAINER = {'current_url': '', 'requests': []}
+CONTAINER = {'current_url': '', 'requests': [], 'meanings':[]}
 DICTIONARIES = {
     "Cambridge": "dictionary.cambridge.org/dictionary/english/",
     "Dictionary.com": "dictionary.com/browse/",
@@ -75,33 +76,40 @@ def remove_http_www(url):
     return url
 
 
-def get_webpage(word_url):
+def get_webpage(word_url, extract_meanings=False):
     url = remove_http_www(word_url)
-    r_text = None
+    soup = None
+    meanings = None
+    found = False
     global CONTAINER
     for request in CONTAINER['requests']:
         if url == request[0]:
             print("Found")
-            r_text = request[1]
+            found = True
+            soup = request[1]
+            meanings = request[2]
             break
-    if not r_text:
+    if not found:
+        # todo: if cambidgespider in this part then except
         # headers = {'User-Agent': session.headers['User-Agent'], 'Referer': 'https://www.google.com'}
         # TODO: select random URL
         # TODO: if bad response on selcting cached 1st goto original. if error on 1st goto cached
         try:
-            response = session.get(word_url, verify=False)
+            response = session.get(word_url)
         except:
             gcurl = "https://webcache.googleusercontent.com/search?q=cache:" + word_url
-            response = session.get(gcurl, verify=False)
+            response = session.get(gcurl)
             url = gcurl
-        r_text = response.text
         print(response.status_code)
+        soup = BeautifulSoup(response.text, "lxml")
+        if extract_meanings:
+            meanings = cambridge.MeaningsSpider(soup).parse()
+            CONTAINER['requests'].append([url, soup, meanings])
 
         # print(session.headers['User-Agent'], session.headers['Referer'])
         # r_text = session.get(word_url, verify=False).text
 
-        CONTAINER['requests'].append((url, r_text))
-    return r_text
+    return meanings if extract_meanings else soup
 
 
 def clear_request(word_url=None):
@@ -292,13 +300,13 @@ class MenuScreen(Screen):
         print("idiom is pressed")
 
     def browse_dictionary(self, dictionary_name):
-        webbrowser.open(DICTIONARIES[dictionary_name])
+        webbrowser.open('https://' + DICTIONARIES[dictionary_name])
         # self.ids.url_label.text = "https://dictionary.cambridge.org/"
         # self.toast('Copied!')
         # pyperclip.copy("Convert url to cambridge")
 
     def toast(self, text='', duration=2.5):
-        if kplatform == 'android':
+        if platform == 'android':
             toast(text=text, gravity=80, length_long=duration)
         else:
             toast(text=text, duration=duration)
@@ -308,15 +316,61 @@ class MenuScreen(Screen):
 
     def open_apkg(self, obj):
         # todo: use kivymd android platform statement/variable
-        # print("Okay.")
+        # todo: root path one place of android
+        if 'ANDROID_STORAGE' in os.environ:
+            from android.storage import app_storage_path
+            # path = f'{app_storage_path()}/'
+            package_name = app_storage_path().split('/')[-2]
+            path = f'/storage/emulated/0/Android/data/{package_name}/files/'
+        else:
+            path = 'files'
+        # path = 'files/'
         apkg_filename = 'output' + '.apkg'
         # print(apkg_filename)
-        if platform.system() == 'Darwin':  # macOS
-            subprocess.call(('open', apkg_filename))
-        elif platform.system() == 'Windows':  # Windows
-            os.startfile(apkg_filename)
+        # if platform.system() == 'Darwin':  # macOS
+        #     subprocess.call(('open', path + apkg_filename))
+        if platform == 'win':  # Windows
+            os.startfile(os.path.join(path, apkg_filename))
         else:  # linux variants
-            subprocess.call(('xdg-open', apkg_filename))
+            try:
+                from jnius import cast
+                from jnius import autoclass
+
+                PythonActivity = autoclass('org.kivy.android.PythonActivity')  # request the Kivy activity instance
+                Intent = autoclass('android.content.Intent')
+                String = autoclass('java.lang.String')
+                Uri = autoclass('android.net.Uri')
+                # fileNameJava = cast('java.lang.CharSequence', String(path + apkg_filename))
+                File = autoclass('java.io.File')
+                FileProvider = autoclass('android.support.v4.content.FileProvider')
+
+                currentActivity = cast('android.app.Activity', PythonActivity.mActivity)
+                ctx = currentActivity.getApplicationContext()
+
+                filePath = File(path + apkg_filename)
+                uriApkg = FileProvider.getUriForFile(ctx, f"{ctx.getPackageName()}.file_provider", filePath)
+                urifromfile = Uri.fromFile(filePath)
+                parcelable = cast('android.os.Parcelable', urifromfile)
+
+                target = Intent()
+                # target.setType('*/*')
+                target.setAction(Intent.ACTION_VIEW)
+                target.setDataAndType(uriApkg, "application/apkg")  # setData(urifromfile)
+                # target.putExtra(f"{ctx.getPackageName()}.extra.PATH_URI", parcelable)
+                target.setFlags(Intent.FLAG_ACTIVITY_FORWARD_RESULT)
+                target.setFlags(Intent.FLAG_ACTIVITY_PREVIOUS_IS_TOP)
+                target.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                # intent = Intent.createChooser(target, 'Abrir el archivo')
+
+                currentActivity.startActivity(target)
+
+                # PythonActivity = autoclass('org.kivy.android.PythonActivity')
+                # currentActivity = cast('android.app.Activity', PythonActivity.mActivity)
+                # context = cast('android.content.Context', currentActivity.getApplicationContext())
+            except Exception as e:
+                print("Jnius autoclass failed!", e)
+                print(traceback.format_exc())
+            # subprocess.call(('xdg-open', path + apkg_filename))
 
     def dialog_popup(self, title, text, close=False, open_=False):
         if not self.dialog:
@@ -370,9 +424,9 @@ class MenuScreen(Screen):
 
     def generate_flashcard(self, btn, section_tuple):
         print(section_tuple)
-        r_text = get_webpage(CONTAINER['current_url'])
+        soup = get_webpage(CONTAINER['current_url'])
         extracted_dictionary = cambridge.CambridgeSpider(
-            BeautifulSoup(r_text, "html.parser"), self.tld, section_tuple
+            soup, self.tld, section_tuple
         ).parse()
         MDApp.get_running_app().soft_restart()
         self.dialog_popup(
@@ -430,8 +484,8 @@ class MenuScreen(Screen):
 
             # gcurl = "https://webcache.googleusercontent.com/search?q=cache:" + word_url
             CONTAINER['current_url'] = word_url
-            r_text = get_webpage(word_url)
-            extracted_meanings = cambridge.MeaningsSpider(BeautifulSoup(r_text, "html.parser")).parse()
+            extracted_meanings = get_webpage(word_url, extract_meanings=True)
+            # extracted_meanings = get_extracted_meanings(soup)
             if not extracted_meanings:
                 clear_request(word_url)
                 self.dialog.dismiss()
@@ -530,6 +584,26 @@ class MyApp(MDApp):
         return screen
         # return sm
         # return MyLayout()
+
+    def on_start(self):
+        if platform == 'android':
+            try:
+                from android.storage import app_storage_path
+                settings_path = app_storage_path()
+                print("settings_path", settings_path)
+
+                from android.storage import primary_external_storage_path
+                primary_ext_storage = primary_external_storage_path()
+                print("primary_ext_storage", primary_ext_storage)
+
+                from android.storage import secondary_external_storage_path
+                secondary_ext_storage = secondary_external_storage_path()
+                print("secondary_ext_storage", secondary_ext_storage)
+            except Exception as e:
+                print("Error printing paths", e)
+
+            from android.permissions import request_permissions, Permission
+            request_permissions([Permission.READ_EXTERNAL_STORAGE, Permission.WRITE_EXTERNAL_STORAGE])
 
     def restart(self):
         self.root.clear_widgets()

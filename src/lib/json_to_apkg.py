@@ -1,3 +1,4 @@
+import os
 import random
 from datetime import datetime as dt
 
@@ -147,14 +148,24 @@ class JsonToApkg:
 
         # add media
         # print('before my_package')
+        # todo: root path one place of android
+        if 'ANDROID_STORAGE' in os.environ:
+            from android.storage import app_storage_path
+            # root_path = f'{app_storage_path()}/'
+            package_name = app_storage_path().split('/')[-2]
+            root_path = f'/storage/emulated/0/Android/data/{package_name}/files/'
+        else:
+            root_path = 'files/'
         my_package = genanki.Package(my_deck)
-        my_package.media_files = ['media/' + self.j_dict["pronunciation_word"][7:-1:]]
+        my_package.media_files = [root_path + 'media/' + self.j_dict["pronunciation_word"][7:-1:]]
         # generate apkg
         # my_package.write_to_file('output-' + self.j_dict["word"] + '.apkg')
         # apkg_filename = 'output-' + dt.now().strftime("%Y%m%d%H%M%S") + '.apkg'
         apkg_filename = 'output' + '.apkg'
         # print('before writing')
-        my_package.write_to_file(apkg_filename)
+        if not os.path.exists(root_path):
+            os.makedirs(root_path)
+        my_package.write_to_file(root_path + apkg_filename)
         return apkg_filename
 
 # ---------------------------------------------------

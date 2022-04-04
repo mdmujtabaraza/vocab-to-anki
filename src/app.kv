@@ -33,7 +33,8 @@ ScreenManager:
             # MDFlatButton:
             #     text: "Meanings"
             #     pos_hint: {'center_x': .8, 'center_y': .9}
-            #     on_release: root.manager.current = 'meanings_screen'
+            #     on_release: root.open_apkg()
+            #     # on_press: root.manager.current = 'meanings_screen'
             MDRaisedButton:
                 id: dict_dropdown
                 text: "Browse"
@@ -42,15 +43,15 @@ ScreenManager:
                 on_release: root.open_dropdown(dict_dropdown=True)
             MDTextField:
                 id: word_input
+                padding: "10dp"
                 multiline: False
                 hint_text: "Paste word/expression url here"
                 helper_text: "ex: https://dictionary.cambridge.org/dictionary/english/water"
                 helper_text_mode: "on_focus"
                 # icon_right: "clipboard-file"
                 # icon_right_color: app.theme_cls.primary_color
-                pos_hint: {'center_x': 0.4, 'center_y': 0.7}
-                size_hint_x: None
-                width: 240
+                size_hint: (.75, .1)
+                pos_hint: {'center_x': 0.45, 'center_y': 0.7}
             MDIconButton:
                 icon: "clipboard-file"
                 pos_hint: {"center_x": .9, "center_y": .7}
@@ -67,8 +68,8 @@ ScreenManager:
                 row_default_height: 40
                 col_force_default: True
                 col_default_width: 180
-                pos_hint: {'center_x': 0.26, 'center_y': 0.45}
-                size_hint: (None, None)
+                pos_hint: {'center_x': 0.39, 'center_y': 0.5}
+                size_hint: (None, .1)
                 MDLabel:
                     text: "English (United Kingdom)"
                 Check:

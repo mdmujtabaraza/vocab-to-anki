@@ -130,7 +130,7 @@ dmypy.json
 
 # Custom
 example_README.md
-media/
+files/
 output/
-output.apkg
+!src/android/lib/
 !buildozer.spec

@@ -368,9 +368,17 @@ class CambridgeSpider:
             filename = get_valid_filename(word + '_' + accent_tld + '.mp3')
             # print(filename)
             tts = gTTS(word, lang='en', tld=tld)
-            if not os.path.exists('media'):
-                os.makedirs('media')
-            tts.save('media/' + filename)
+            # todo: root path one place of android
+            if 'ANDROID_STORAGE' in os.environ:
+                from android.storage import app_storage_path
+                # root_path = f'{app_storage_path()}/media/'
+                package_name = app_storage_path().split('/')[-2]
+                root_path = f'/storage/emulated/0/Android/data/{package_name}/files/media/'
+            else:
+                root_path = 'files/media/'
+            if not os.path.exists(root_path):
+                os.makedirs(root_path)
+            tts.save(root_path + filename)
 
             # url = 'https://' + CambridgeSpider.allowed_domains[0] + address
             # http = urllib3.PoolManager(10, headers={'user-agent': USER_AGENT})
