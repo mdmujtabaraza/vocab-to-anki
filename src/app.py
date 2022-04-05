@@ -1,3 +1,4 @@
+import logging
 import os
 import subprocess
 import webbrowser
@@ -7,6 +8,11 @@ import json
 import re
 import traceback
 
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s:%(levelname)s:%(message)s"
+)
+
 import bs4
 import urllib3
 import requests
@@ -15,6 +21,8 @@ from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 import validators
 from bs4 import BeautifulSoup
+
+from kivy.animation import Animation
 from kivy import require, platform
 from kivymd.app import MDApp
 from kivymd.toast import toast
@@ -28,6 +36,8 @@ from kivy.uix.screenmanager import Screen, ScreenManager
 from kivy.core.window import Window
 from kivymd.uix.toolbar import MDToolbar
 from kivymd.uix.expansionpanel import MDExpansionPanel, MDExpansionPanelTwoLine
+from kivymd.uix.selectioncontrol import MDCheckbox
+from kivymd.uix.snackbar import Snackbar
 from kivymd.uix.label import MDLabel, MDIcon
 from kivymd.uix.gridlayout import MDGridLayout
 from kivy.config import Config
@@ -39,17 +49,21 @@ from kivy.uix.button import Button
 from kivy.utils import get_color_from_hex
 
 from src.dict_scraper.spiders import cambridge
+from src.lib.helpers import get_root_path
+from src.lib.json_to_apkg import JsonToApkg
+from src.lib.strings import get_text
+
 
 # os.environ["KIVY_NO_CONSOLELOG"] = "1"
 require('2.1.0')
 
-CONTAINER = {'current_url': '', 'requests': [], 'meanings':[]}
+CONTAINER = {'current_url': '', 'requests': [], 'm_checkboxes': [], 'm_checkboxes_selected': 0, 'm_checkboxes_total': 0}
 DICTIONARIES = {
-    "Cambridge": "dictionary.cambridge.org/dictionary/english/",
-    "Dictionary.com": "dictionary.com/browse/",
-    "Merriam-Webster": "merriam-webster.com/dictionary/",
-    "Oxford": "oxfordlearnersdictionaries.com/definition/english/",
-    "Vocabulary.com": "vocabulary.com/dictionary/",
+    get_text("cambridge"): "dictionary.cambridge.org/dictionary/english/",
+    get_text("dictionary_com"): "dictionary.com/browse/",
+    get_text("merriam_webster"): "merriam-webster.com/dictionary/",
+    get_text("oxford"): "oxfordlearnersdictionaries.com/definition/english/",
+    get_text("vocabulary_com"): "vocabulary.com/dictionary/",
 }
 HEADERS = {
     'User-Agent': generate_user_agent(device_type='smartphone' if 'ANDROID_STORAGE' in os.environ else 'desktop'),
@@ -90,10 +104,10 @@ def get_webpage(word_url, extract_meanings=False):
             meanings = request[2]
             break
     if not found:
-        # todo: if cambidgespider in this part then except
+        # todo: if cambridgespider in this part then except
         # headers = {'User-Agent': session.headers['User-Agent'], 'Referer': 'https://www.google.com'}
         # TODO: select random URL
-        # TODO: if bad response on selcting cached 1st goto original. if error on 1st goto cached
+        # TODO: if bad response on selecting cached 1st goto original. if error on 1st goto cached
         try:
             response = session.get(word_url)
         except:
@@ -130,20 +144,81 @@ def clear_request(word_url=None):
 # Window.size = (500, 400)
 
 
-class MeaningsPanelContent(MDBoxLayout):
+class MeaningsPanelContent(MDGridLayout):
     def __init__(self, *args, **kwargs):
         super().__init__()
-        menu_instance = args[0]
+        parent_checkbox = args[0]
         meaning = args[1]
         section_ids = meaning['cid']
         more_words = meaning['more_words'][section_ids[0]]
         for key, value in more_words.items():
             # root.ids.meanings_screen.ids.meanings_panel
             section_tuple = (section_ids, (key, value), meaning['pos'], meaning['in_dsense'])
+            child_checkbox = MeaningMDCheckbox(section_tuple)
+            # menu_screen = self.root.get_screen("menu_screen")
+            menu_screen_instance = MDApp.get_running_app().menu_screen_instance
             self.add_widget(OneLineListItem(
                 text=value,
-                on_release=lambda x, y=section_tuple: menu_instance.confirm_generation(y)
+                # on_release=lambda x, y=section_tuple: menu_instance.confirm_generation(y)
+                on_release=lambda x, y=child_checkbox: menu_screen_instance.change_checkbox_state(y)
             ))
+            for index in range(len(CONTAINER['m_checkboxes'])):
+                cbox = CONTAINER['m_checkboxes'][index]
+                if type(cbox) is list and cbox[0] == parent_checkbox:
+                    CONTAINER['m_checkboxes'][index].append(child_checkbox)
+                    break
+
+            self.add_widget(child_checkbox)
+
+
+class MeaningMDCheckbox(MDCheckbox):
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+        self.section_tuple = args[0]
+        self.active = False
+        if self.section_tuple is not None:
+            CONTAINER['m_checkboxes_total'] += 1
+
+    def on_checkbox_active(self, checkbox, value):
+        # print(getattr(self, 'some_data'))
+        print("On Active:", checkbox)
+        try:
+            CONTAINER['m_checkboxes'].index(checkbox)
+        except ValueError:
+            print("list")
+            for cbox in CONTAINER['m_checkboxes']:
+                if type(cbox) is list:
+                    if checkbox == cbox[0]:
+                        print('in cbox[0]')
+                        for child_cbox in cbox[1:]:
+                            if value != child_cbox.active:
+                                child_cbox.active = value
+                        break
+                    elif checkbox in cbox:
+                        print('in child')
+                        CONTAINER['m_checkboxes_selected'] = CONTAINER['m_checkboxes_selected']+1 \
+                            if value else CONTAINER['m_checkboxes_selected']-1
+                        if value:
+                            if all([x.active for x in cbox[1:]]):
+                                cbox[0].active = value
+                        else:
+                            if not any([x.active for x in cbox[1:]]):
+                                cbox[0].active = value
+                        break
+        else:
+            print("not list")
+            CONTAINER['m_checkboxes_selected'] = CONTAINER['m_checkboxes_selected'] + 1 \
+                if value else CONTAINER['m_checkboxes_selected'] - 1
+        finally:
+            # if value:
+            #     print('The checkbox', checkbox, 'is active', 'and', checkbox.state, 'state')
+            # else:
+            #     print('The checkbox', checkbox, 'is inactive', 'and', checkbox.state, 'state')
+            pass
+        MDApp.get_running_app().on_selected()
+
+        # for checkbox in CONTAINER['m_checkboxes']:
+        #     print(checkbox)
 
 
 class MenuScreen(Screen):
@@ -221,71 +296,37 @@ class MenuScreen(Screen):
     #         self.manager.transition.duration = 0.5
     #         self.manager.current = 'meanings_screen'
 
-    def open_dropdown(self, dict_dropdown=False):
+    def open_dropdown(self):
         if self.dropdown_menu is not None:
             self.dropdown_menu.dismiss()
 
-        if dict_dropdown:
-            self.menu_list = [
-                {
-                    "viewclass": "OneLineListItem",
-                    "text": "Cambridge",
-                    "on_release": lambda x="Cambridge": self.browse_dictionary('Cambridge')
-                },
-                {
-                    "viewclass": "OneLineListItem",
-                    "text": "Dictionary.com",
-                    "on_release": lambda x="Dictionary.com": self.browse_dictionary('Dictionary.com')
-                },
-                {
-                    "viewclass": "OneLineListItem",
-                    "text": "Merriam-Webster",
-                    "on_release": lambda x="Merriam-Webster": self.browse_dictionary('Merriam-Webster')
-                },
-                {
-                    "viewclass": "OneLineListItem",
-                    "text": "Oxford",
-                    "on_release": lambda x="Oxford": self.browse_dictionary('Oxford')
-                },
-                {
-                    "viewclass": "OneLineListItem",
-                    "text": "Vocabulary.com",
-                    "on_release": lambda x="Vocabulary.com": self.browse_dictionary('Vocabulary.com')
-                },
-                # {
-                #     "viewclass": "OneLineListItem",
-                #     "text": "Back",
-                #     "on_release": lambda x="Back": self.open_dropdown(dict_dropdown=True)
-                # }
-            ]
-        else:
-            self.menu_list = [
-                {
-                    "viewclass": "OneLineListItem",
-                    "text": "Word",
-                    "on_release": lambda x="Word": self.find_word()
-                },
-                {
-                    "viewclass": "OneLineListItem",
-                    "text": "Phrase",
-                    "on_release": lambda x="Phrase": self.find_idiom()
-                },
-                {
-                    "viewclass": "OneLineListItem",
-                    "text": "Idiom",
-                    "on_release": lambda x="Idiom": self.find_idiom()
-                },
-                {
-                    "viewclass": "OneLineListItem",
-                    "text": "Phrasal Verb",
-                    "on_release": lambda x="Phrasal Verb": self.find_idiom()
-                },
-                {
-                    "viewclass": "OneLineListItem",
-                    "text": "Collocation",
-                    "on_release": lambda x="Collocation": self.find_idiom()
-                }
-            ]
+        self.menu_list = [
+            {
+                "viewclass": "OneLineListItem",
+                "text": get_text("cambridge"),
+                "on_release": lambda x=get_text("cambridge"): self.browse_dictionary(x)
+            },
+            {
+                "viewclass": "OneLineListItem",
+                "text": get_text("dictionary_com"),
+                "on_release": lambda x=get_text("dictionary_com"): self.browse_dictionary(x)
+            },
+            {
+                "viewclass": "OneLineListItem",
+                "text": get_text("merriam_webster"),
+                "on_release": lambda x=get_text("merriam_webster"): self.browse_dictionary(x)
+            },
+            {
+                "viewclass": "OneLineListItem",
+                "text": get_text("oxford"),
+                "on_release": lambda x=get_text("oxford"): self.browse_dictionary(x)
+            },
+            {
+                "viewclass": "OneLineListItem",
+                "text": get_text("vocabulary_com"),
+                "on_release": lambda x=get_text("vocabulary_com"): self.browse_dictionary(x)
+            }
+        ]
         self.dropdown_menu = MDDropdownMenu(
             caller=self.ids.dict_dropdown,
             items=self.menu_list,
@@ -315,22 +356,14 @@ class MenuScreen(Screen):
         self.dialog.dismiss()
 
     def open_apkg(self, obj):
-        # todo: use kivymd android platform statement/variable
-        # todo: root path one place of android
-        if 'ANDROID_STORAGE' in os.environ:
-            from android.storage import app_storage_path
-            # path = f'{app_storage_path()}/'
-            package_name = app_storage_path().split('/')[-2]
-            path = f'/storage/emulated/0/Android/data/{package_name}/files/'
-        else:
-            path = 'files'
-        # path = 'files/'
+        path = get_root_path()
         apkg_filename = 'output' + '.apkg'
+
         # print(apkg_filename)
         # if platform.system() == 'Darwin':  # macOS
         #     subprocess.call(('open', path + apkg_filename))
         if platform == 'win':  # Windows
-            os.startfile(os.path.join(path, apkg_filename))
+            os.startfile(os.path.join(path[:-1], apkg_filename))
         else:  # linux variants
             try:
                 from jnius import cast
@@ -405,41 +438,63 @@ class MenuScreen(Screen):
         if value is True:
             self.tld = tld
 
-    def confirm_generation(self, section_tuple):
-        meaning = section_tuple[1]
-        meaning_text = meaning[1] if type(meaning) is tuple else meaning
+    def generate_flashcards(self, btn):
+        selected_checkboxes = []
+        for checkbox in CONTAINER['m_checkboxes']:
+            if type(checkbox) is list:
+                for child_checkbox in checkbox[1:]:
+                    if child_checkbox.active:
+                        selected_checkboxes.append(child_checkbox)
+            else:
+                if checkbox.active:
+                    selected_checkboxes.append(checkbox)
+
+        notes = []
+        jta = JsonToApkg()
+        soup = get_webpage(CONTAINER['current_url'])
+        for checkbox in selected_checkboxes:
+            extracted_dictionary = cambridge.CambridgeSpider(
+                soup, self.tld, checkbox.section_tuple
+            ).parse()
+            notes.append(jta.generate_note(extracted_dictionary))
+        jta.generate_apkg(notes)
+
+        MDApp.get_running_app().soft_restart()
+        self.dialog_popup(
+            get_text("open_confirmation"),
+            get_text("flashcards_generated"),
+            open_=True
+        )
+
+    def confirm_generation(self):
+        # meaning = section_tuple[1]
+        # meaning_text = meaning[1] if type(meaning) is tuple else meaning
+        # menu_screen = self.root.get_screen("menu_screen")
         confirm_button = MDRaisedButton(
-            text="CONFIRM", on_release=lambda x, y=section_tuple: self.generate_flashcard(x, y)
+            text="CONFIRM", on_release=lambda x: self.generate_flashcards(x)
         )
         close_button = MDFlatButton(text="CLOSE", on_release=self.close_dialog)
         if self.dialog:
             self.dialog.dismiss()
         self.dialog = MDDialog(
-            title="Confirm generation",
-            text=f"Do you want to generate Anki flashcard for \"{meaning_text}\"?",
-            # size_hint=(0.7, 1),
+            title=get_text("confirm_generation"),
+            text=get_text("flashcards_generate"),
             buttons=[close_button, confirm_button]
         )
         self.dialog.open()
 
-    def generate_flashcard(self, btn, section_tuple):
-        print(section_tuple)
-        soup = get_webpage(CONTAINER['current_url'])
-        extracted_dictionary = cambridge.CambridgeSpider(
-            soup, self.tld, section_tuple
-        ).parse()
-        MDApp.get_running_app().soft_restart()
-        self.dialog_popup(
-            "Open Anki Package?",
-            f"Successfully generated flashcard. Do you want to open it in Anki?",
-            open_=True
-        )
+    def change_checkbox_state(self, checkbox):
+        state = checkbox.active
+        if state:
+            checkbox.active = False
+        else:
+            checkbox.active = True
 
     def show_data(self):
         word_url = self.ids.word_input.text.split('#')[0].split('?')[0]
         dict_name = None
         if not validators.url(word_url):
-            self.toast("URL not found. Please try again")
+            self.toast(get_text("url_not_found"))
             self.dialog.dismiss()
             return False
         # word_url = self.word_url.text
@@ -489,11 +544,12 @@ class MenuScreen(Screen):
             if not extracted_meanings:
                 clear_request(word_url)
                 self.dialog.dismiss()
-                self.toast("Invalid URL. Please try again")
+                self.toast(get_text("invalid_url"))
                 return False
             # CONTAINER['meanings'] = extracted_meanings
             # self.dialog_popup("Processing...", "Please wait. Generating Flashcard..")
             meanings_screen = self.manager.get_screen("meanings_screen")
+            count = 0
             for meaning in extracted_meanings:
                 section_ids = meaning['cid']
                 word = meaning['word']
@@ -502,27 +558,37 @@ class MenuScreen(Screen):
                 meaning_text = word + " " + guide_word
                 section_tuple = (section_ids, meaning_text, meaning['pos'], meaning['in_dsense'])
                 if not meaning['more_words'][section_ids[0]]:
-                    meanings_screen.ids.meanings_container.add_widget(
+                    checkbox = MeaningMDCheckbox(section_tuple)
+                    meanings_screen.ids.meanings_selection_list.add_widget(
                         TwoLineListItem(
                             text=meaning_text,
                             secondary_text=f"{part_of_speech}",
-                            on_release=lambda x, y=section_tuple: self.confirm_generation(y)
+                            # on_release=lambda x, y=section_tuple: self.confirm_generation(y)
+                            on_release=lambda x, y=checkbox: self.change_checkbox_state(y)
                         )
                     )
+                    # print("Outside:", checkbox)
+                    meanings_screen.ids.meanings_selection_list.add_widget(checkbox)
+                    CONTAINER['m_checkboxes'].append(checkbox)
                 else:
-                    meanings_screen.ids.meanings_container.add_widget(
+                    checkbox = MeaningMDCheckbox(None)
+                    CONTAINER['m_checkboxes'].append([checkbox])
+                    meanings_screen.ids.meanings_selection_list.add_widget(
                         MDExpansionPanel(
-                            content=MeaningsPanelContent(self, meaning),
+                            content=MeaningsPanelContent(checkbox, meaning),
                             panel_cls=MDExpansionPanelTwoLine(
                                 text=f"{' '*4}{word} {guide_word}",
                                 secondary_text=f"{' '*4}{part_of_speech}"
                             )
                         )
                     )
+                    meanings_screen.ids.meanings_selection_list.add_widget(checkbox)
+
+                count += 1
             self.dialog.dismiss()
             MDApp.get_running_app().change_screen()
         else:
-            self.toast("Invalid URL. Please try again")
+            self.toast(get_text("invalid_url"))
             self.dialog.dismiss()
             return False
         # self.add_widget(MDLabel(
@@ -541,6 +607,38 @@ class MeaningsScreen(Screen):
         super(MeaningsScreen, self).__init__(**kwargs)
         # self.on_start()
 
+    def select_all(self):
+        print("Select_all")
+        count = 0
+        for checkbox in CONTAINER['m_checkboxes']:
+            if type(checkbox) is list:
+                checkbox[0].active = True
+                for child_checkbox in checkbox[1:]:
+                    count += 1
+            else:
+                count += 1
+                checkbox.active = True
+        CONTAINER['m_checkboxes_selected'] = count
+        menu_screen_instance = MDApp.get_running_app().menu_screen_instance
+        # md_bg_color = self.theme_cls.primary_color
+        # left_action_items = [["arrow-left", lambda x: self.get_running_app().soft_restart()]]
+        right_action_items = [[get_text("export_icon"), lambda x: menu_screen_instance.confirm_generation()],
+                              [get_text("select_none_icon"), lambda x: self.deselect_all()]]
+        self.ids.toolbar.right_action_items = right_action_items
+        # meanings_screen.ids.toolbar.title = get_text("app_title")
+        # meanings_screen.ids.toolbar.anchor_title = 'center'
+
+    def deselect_all(self):
+        print("Select_None")
+        for checkbox in CONTAINER['m_checkboxes']:
+            if type(checkbox) is list:
+                checkbox[0].active = False
+            else:
+                checkbox.active = False
+        CONTAINER['m_checkboxes_selected'] = 0
+        right_action_items = [[get_text("select_all_icon"), lambda x: self.select_all()]]
+        self.ids.toolbar.right_action_items = right_action_items
+
     # def change_screen(self):
     #     if self.manager.current == "menu_screen":
     #         self.manager.transition.direction = 'left'
@@ -552,31 +650,35 @@ class MeaningsScreen(Screen):
     #         self.manager.transition.duration = 0.5  # 0.5 second
     #         self.manager.current = 'menu_screen'
 
-    def on_start(self):
-        # for i in range(20):
-        #     self.ids.meanings_container.add_widget(
-        #         OneLineListItem(text=f"Single-line item {i}")
-        #     )
-        self.ids.box.add_widget(
-            MDToolbar(
-                type_height="medium",
-                # headline_text=f"Headline",
-                left_action_items=[["arrow-left", lambda x: x]],
-                right_action_items=[
-                    ["attachment", lambda x: x],
-                    ["calendar", lambda x: x],
-                    ["dots-vertical", lambda x: x],
-                ],
-                title="Title"
-            )
-        )
+    # def on_start(self):
+    #     # for i in range(20):
+    #     #     self.ids.meanings_selection_list.add_widget(
+    #     #         OneLineListItem(text=f"Single-line item {i}")
+    #     #     )
+    #     self.ids.box.add_widget(
+    #         MDToolbar(
+    #             type_height="medium",
+    #             # headline_text=f"Headline",
+    #             left_action_items=[[get_text("back_icon"), lambda x: x]],
+    #             right_action_items=[
+    #                 ["attachment", lambda x: x],
+    #                 ["calendar", lambda x: x],
+    #                 ["dots-vertical", lambda x: x],
+    #             ],
+    #             title="Title"
+    #         )
+    #     )
 
 
 class MyApp(MDApp):
+    # overlay_color = get_color_from_hex("#6042e4")
+    menu_screen_instance = MenuScreen()
+    meanings_screen_instance = MeaningsScreen()
+
     def build(self):
         # sm.add_widget(MenuScreen(name='menu_screen'))
         # sm.add_widget(MeaningsScreen(name='meanings_screen'))
-        self.title = 'Vocab to Anki'
+        self.title = get_text("app_title")
         self.theme_cls.primary_palette = "Blue"
         self.theme_cls.theme_style = "Dark"
         self.theme_cls.material_style = "M3"
@@ -586,6 +688,7 @@ class MyApp(MDApp):
         # return MyLayout()
 
     def on_start(self):
+        print("Size:", Window.size)
         if platform == 'android':
             try:
                 from android.storage import app_storage_path
@@ -610,6 +713,9 @@ class MyApp(MDApp):
         self.stop()
         global CONTAINER
         CONTAINER['current_url'] = ''
+        CONTAINER['m_checkboxes'] = []
+        CONTAINER['m_checkboxes_selected'] = 0
+        CONTAINER['m_checkboxes_total'] = 0
         return MyApp().run()
 
     def change_screen(self):
@@ -626,11 +732,77 @@ class MyApp(MDApp):
     def soft_restart(self):
         global CONTAINER
         CONTAINER['current_url'] = ''
+        CONTAINER['m_checkboxes'] = []
+        CONTAINER['m_checkboxes_selected'] = 0
+        CONTAINER['m_checkboxes_total'] = 0
         self.root.transition.direction = 'right'
         self.root.transition.duration = 0.5  # 0.5 second
+
         meanings_screen = self.root.get_screen("meanings_screen")
-        meanings_screen.ids.meanings_container.clear_widgets()
+        meanings_screen.ids.toolbar.title = get_text("app_title")
+        meanings_screen.ids.toolbar.anchor_title = 'center'
+        if meanings_screen.ids.toolbar.right_action_items[0][0] == get_text("export_icon"):
+            meanings_screen.ids.toolbar.right_action_items.pop(0)
+            # meanings_screen.ids.toolbar.right_action_items = \
+            #     [[get_text("select_all_icon"), lambda x: self.get_running_app().meanings_screen_instance.select_all()]]
+        meanings_screen.ids.meanings_selection_list.clear_widgets()
         self.root.current = 'menu_screen'
+
+    # def callback(self, button):
+    #     Snackbar(text="Hello World").open()
+
+    # def set_selection_mode(self, instance_selection_list, mode):
+    #     meanings_screen = self.root.get_screen("meanings_screen")
+    #     if mode:
+    #         md_bg_color = self.theme_cls.primary_dark
+    #         left_action_items = [
+    #             [
+    #                 "close",
+    #                 lambda x: meanings_screen.ids.meanings_selection_list.unselected_all(),
+    #             ]
+    #         ]
+    #         right_action_items = [["dots-vertical"]]
+    #     else:
+    #         md_bg_color = self.theme_cls.primary_color
+    #         left_action_items = [["arrow-left", lambda x: self.get_running_app().soft_restart()]]
+    #         right_action_items = [["dots-vertical"]]
+    #         meanings_screen.ids.toolbar.title = get_text("app_title")
+    #         meanings_screen.ids.toolbar.anchor_title = 'center'
+    #
+    #     Animation(md_bg_color=md_bg_color, d=0.2).start(meanings_screen.ids.toolbar)
+    #     meanings_screen.ids.toolbar.left_action_items = left_action_items
+    #     meanings_screen.ids.toolbar.right_action_items = right_action_items
+
+    def on_selected(self):
+        meanings_screen = self.root.get_screen("meanings_screen")
+        export_button = \
+            [get_text("export_icon"), lambda x: self.get_running_app().menu_screen_instance.confirm_generation()]
+        if CONTAINER['m_checkboxes_selected'] == 0:
+            meanings_screen.ids.toolbar.title = get_text("app_title")
+            meanings_screen.ids.toolbar.anchor_title = 'center'
+            print('popping')
+            if meanings_screen.ids.toolbar.right_action_items[0][0] == get_text("export_icon"):
+                meanings_screen.ids.toolbar.right_action_items.pop(0)
+                # meanings_screen.ids.toolbar.right_action_items = \
+                #     [[get_text("select_all_icon"), lambda x: self.get_running_app().meanings_screen_instance.select_all()]]
+        else:
+            meanings_screen.ids.toolbar.title = \
+                f"{CONTAINER['m_checkboxes_selected']}/{CONTAINER['m_checkboxes_total']} selected"
+            meanings_screen.ids.toolbar.anchor_title = 'left'
+
+            print('going inside')
+            if meanings_screen.ids.toolbar.right_action_items[0][0] != get_text("export_icon"):
+                print('inside')
+                meanings_screen.ids.toolbar.right_action_items.insert(0, export_button)
+            print('outside')
+            # meanings_screen.ids.toolbar.right_action_items = [["select-off", lambda x: meanings_screen.deselect_all()]]
+
+    # def on_unselected(self, instance_selection_list, instance_selection_item):
+    #     meanings_screen = self.root.get_screen("meanings_screen")
+    #     if instance_selection_list.get_selected_list_items():
+    #         meanings_screen.ids.toolbar.title = str(
+    #             len(instance_selection_list.get_selected_list_items())
+    #         )
 
 
 # Run the App

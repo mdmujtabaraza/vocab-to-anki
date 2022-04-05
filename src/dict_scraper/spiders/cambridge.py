@@ -5,7 +5,7 @@ import requests
 from gtts import gTTS
 from bs4.element import ResultSet, Tag
 
-from src.lib.json_to_apkg import JsonToApkg
+from src.lib.helpers import get_root_path
 
 
 allowed_domains = ['dictionary.cambridge.org']
@@ -365,20 +365,15 @@ class CambridgeSpider:
         # us_pronunciation = response.css(".us #ampaudio2 source::attr(src)").extract_first()  # amp-audio
 
         def download_audio() -> str:
+            root_path = get_root_path() + 'media/'
             filename = get_valid_filename(word + '_' + accent_tld + '.mp3')
             # print(filename)
             tts = gTTS(word, lang='en', tld=tld)
-            # todo: root path one place of android
-            if 'ANDROID_STORAGE' in os.environ:
-                from android.storage import app_storage_path
-                # root_path = f'{app_storage_path()}/media/'
-                package_name = app_storage_path().split('/')[-2]
-                root_path = f'/storage/emulated/0/Android/data/{package_name}/files/media/'
-            else:
-                root_path = 'files/media/'
+
             if not os.path.exists(root_path):
                 os.makedirs(root_path)
-            tts.save(root_path + filename)
+            if not os.path.exists(root_path + filename):
+                tts.save(root_path + filename)
 
             # url = 'https://' + CambridgeSpider.allowed_domains[0] + address
             # http = urllib3.PoolManager(10, headers={'user-agent': USER_AGENT})
@@ -425,8 +420,5 @@ class CambridgeSpider:
         # dictionary_item['sentences'] = re.findall('.*?[.!?]', ''.join(sentences))[:2]
         # dictionary_item['us_phonemic_script'] = '/' + us_phonemic_script + '/'
         # dictionary_item['us_pronunciation'] = download_audio('us', us_pronunciation)
-        jta = JsonToApkg(dictionary_item)
-        # print(dictionary_item)
-        jta.generate_apkg()
         # print("Generated.")
         return dictionary_item

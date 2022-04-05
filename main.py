@@ -48,9 +48,12 @@
 # </paths>
 
 import os
+from glob import glob
+
+import ssl
 
 from src.app import MyApp
-import ssl
+from src.lib.helpers import get_root_path
 
 if __name__ == '__main__':
     if 'ANDROID_STORAGE' in os.environ:
@@ -62,3 +65,10 @@ if __name__ == '__main__':
             print("Loading screen is not removed", e)
     ssl._create_default_https_context = ssl._create_unverified_context
     MyApp().run()
+
+    # Delete Files on exit.
+    root_path = get_root_path()
+    mp3_files = glob(root_path + 'media/*.mp3')
+    for f in mp3_files:
+        os.remove(f)
+    os.remove(root_path + 'output.apkg')

@@ -5,6 +5,9 @@ from datetime import datetime as dt
 import genanki
 # from aqt import mw
 
+from src.lib.helpers import get_root_path
+from src.lib.strings import get_text
+
 # https://github.com/kerrickstaley/genanki
 
 # just do these steps
@@ -82,15 +85,42 @@ def generate_cloze(phrase: str):
 
 class JsonToApkg:
 
-    def __init__(self, j_dict):
-        self.j_dict = j_dict
+    def __init__(self):
+        pass
 
-    def generate_apkg(self):
+    def generate_apkg(self, notes):
+        # print('Before my_deck')
+        my_deck = genanki.Deck(
+            1646145285163,  # todo: change id and name
+            f"Eng_{'-'.join(get_text('app_title').split(' '))}_1646145285163")
+
+        media_filenames = []
+        for note in notes:
+            media_filenames.append(note.fields[4][7:-1:])
+            my_deck.add_note(note)
+
+        # add media
+        root_path = get_root_path()
+        my_package = genanki.Package(my_deck)
+        my_package.media_files = [root_path + 'media/' + file for file in set(media_filenames)]
+        # generate apkg
+        # my_package.write_to_file('output-' + j_dict["word"] + '.apkg')
+        # apkg_filename = 'output-' + dt.now().strftime("%Y%m%d%H%M%S") + '.apkg'
+        apkg_filename = 'output' + '.apkg'
+        # print('before writing')
+        if not os.path.exists(root_path):
+            os.makedirs(root_path)
+        my_package.write_to_file(root_path + apkg_filename)
+        return apkg_filename
+
+    def generate_note(self, j_dict):
         # create/initialize model
         # print('before my_model')
+        # >>> random.randrange(1 << 30, 1 << 31)
+        # 1251836382
         my_model = genanki.Model(
-            1646879431108,  # todo: change id and also create new customized structure
-            name='English Vocab',
+            1251836382,
+            name=f"{'-'.join(get_text('app_title').split(' '))}_1251836382",
             fields=[
                 {'name': 'Word'},
                 {'name': 'PartOfSpeech'},
@@ -122,51 +152,24 @@ class JsonToApkg:
         # todo: cloze, picture, synonyms, arrange in order, if sound not there then?
         # print('before list_of_fields')
         list_of_fields = [
-            self.j_dict.get("word", ""),
-            self.j_dict.get("part_of_speech", ""),
-            generate_cloze(self.j_dict["word"]),  # self.j_dict.get("cloze", ""),
-            self.j_dict.get("phonemic_script", ""),
-            self.j_dict.get("pronunciation_word", ""),
-            self.j_dict.get("meaning", ""),
-            self.j_dict.get("sentences", ""),
-            "",  # self.j_dict.get("picture", ""),
-            self.j_dict.get("synonyms", "")
+            j_dict.get("word", ""),
+            j_dict.get("part_of_speech", ""),
+            generate_cloze(j_dict["word"]),  # j_dict.get("cloze", ""),
+            j_dict.get("phonemic_script", ""),
+            j_dict.get("pronunciation_word", ""),
+            j_dict.get("meaning", ""),
+            j_dict.get("sentences", ""),
+            "",  # j_dict.get("picture", ""),
+            j_dict.get("synonyms", "")
         ]
-        # list_of_fields = [x for x in self.j_dict.values()]
+        # list_of_fields = [x for x in j_dict.values()]
 
         # print('Before my_note')
         my_note = genanki.Note(
             model=my_model,
             fields=list_of_fields
         )
-        # print('Before my_deck')
-        my_deck = genanki.Deck(
-            1646145285163,  # todo: change id and name
-            "English Vocabulary (British Accent)")
-        # print('before adding a note to deck')
-        my_deck.add_note(my_note)
-
-        # add media
-        # print('before my_package')
-        # todo: root path one place of android
-        if 'ANDROID_STORAGE' in os.environ:
-            from android.storage import app_storage_path
-            # root_path = f'{app_storage_path()}/'
-            package_name = app_storage_path().split('/')[-2]
-            root_path = f'/storage/emulated/0/Android/data/{package_name}/files/'
-        else:
-            root_path = 'files/'
-        my_package = genanki.Package(my_deck)
-        my_package.media_files = [root_path + 'media/' + self.j_dict["pronunciation_word"][7:-1:]]
-        # generate apkg
-        # my_package.write_to_file('output-' + self.j_dict["word"] + '.apkg')
-        # apkg_filename = 'output-' + dt.now().strftime("%Y%m%d%H%M%S") + '.apkg'
-        apkg_filename = 'output' + '.apkg'
-        # print('before writing')
-        if not os.path.exists(root_path):
-            os.makedirs(root_path)
-        my_package.write_to_file(root_path + apkg_filename)
-        return apkg_filename
+        return my_note
 
 # ---------------------------------------------------
 # my_package = genanki.Package(my_deck)

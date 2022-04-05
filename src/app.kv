@@ -1,4 +1,10 @@
+#:import choice random.choice
+
 #:import Clipboard kivy.core.clipboard.Clipboard
+#:import Window kivy.core.window.Window
+
+#:import get_text src.lib.strings.get_text
+
 <Check@MDCheckbox>:
     group: 'accents'
     size_hint: None, None
@@ -13,7 +19,7 @@ ScreenManager:
 
 # MDLabel:
 #     id: url_label
-#     text: 'Vocab to Anki'
+#     text: get_text("app_title")
 #     halign: 'center'
 #     theme_text_color: 'Primary'
 #     font_style: 'H6'
@@ -25,9 +31,10 @@ ScreenManager:
         orientation: "vertical"
         size: root.width, root.height
         MDToolbar:
-            title: 'Vocab to Anki'
+            id: toolbar
+            title: get_text("app_title")
             anchor_title: 'center'
-            # right_action_items: [["refresh", lambda x: app.get_running_app().restart()]]
+            # left_action_items: [[get_text("refresh_icon"), lambda x: app.get_running_app().restart()]]
             elevation: 10
         FloatLayout:
             # MDFlatButton:
@@ -37,27 +44,28 @@ ScreenManager:
             #     # on_press: root.manager.current = 'meanings_screen'
             MDRaisedButton:
                 id: dict_dropdown
-                text: "Browse"
+                text: get_text("browse_button")
                 font_style: 'Button'
                 pos_hint: {"center_x": 0.5, 'center_y': 0.85}
                 on_release: root.open_dropdown(dict_dropdown=True)
             MDTextField:
                 id: word_input
+                text: get_text("sample_url")
                 padding: "10dp"
                 multiline: False
-                hint_text: "Paste word/expression url here"
-                helper_text: "ex: https://dictionary.cambridge.org/dictionary/english/water"
+                hint_text: get_text("paste_here")
+                helper_text: f"ex: {get_text('sample_url')}"
                 helper_text_mode: "on_focus"
-                # icon_right: "clipboard-file"
+                # icon_right: get_text('paste_icon')
                 # icon_right_color: app.theme_cls.primary_color
                 size_hint: (.75, .1)
                 pos_hint: {'center_x': 0.45, 'center_y': 0.7}
             MDIconButton:
-                icon: "clipboard-file"
+                icon: get_text('paste_icon')
                 pos_hint: {"center_x": .9, "center_y": .7}
                 on_release: word_input.text = Clipboard.paste()
             # MDLabel:
-            #     text: "Select Pronunciation Accent"
+            #     text: get_text("chose_accent")
             #     theme_text_color: 'Primary'
             #     font_style: 'Body1'
             #     halign: 'center'
@@ -71,19 +79,19 @@ ScreenManager:
                 pos_hint: {'center_x': 0.39, 'center_y': 0.5}
                 size_hint: (None, .1)
                 MDLabel:
-                    text: "English (United Kingdom)"
+                    text: get_text("en_uk")
                 Check:
                     on_active: root.checkbox_click(self, self.active, "co.uk")
                 MDLabel:
-                    text: "English (United States)"
+                    text: get_text("en_us")
                 Check:
                     active: True
                     on_active: root.checkbox_click(self, self.active, "com")
             MDRectangleFlatButton:
-                text: 'Generate Anki Flashcard'
+                text: get_text("generate_flashcards")
                 font_style: 'Button'
                 pos_hint: {'center_x': 0.5, 'center_y': 0.25}
-                on_press: root.dialog_popup("Finding meanings...", "Still faster than Windows update")
+                on_press: root.dialog_popup(get_text("finding_meanings"), choice(get_text("funny_loading_messages")))
                 on_release: root.show_data()
 
 
@@ -97,21 +105,46 @@ ScreenManager:
         size: root.width, root.height
 
         MDToolbar:
-            title: 'Vocab to Anki'
+            id: toolbar
+            title: get_text("app_title")
             anchor_title: 'center'
-            left_action_items: [["arrow-left", lambda x: app.get_running_app().soft_restart()]]
+            left_action_items: [[get_text('back_icon'), lambda x: app.get_running_app().soft_restart()]]
+            right_action_items: [[get_text('select_all_icon'), lambda x: root.select_all()]]
             elevation: 10
-        ScrollView:
 
+        ScrollView:
+            size: self.size
             MDList:
+                MDGridLayout:
+                    size_hint_y: None
+                    height: self.minimum_height
+                    width: self.minimum_width
+                    cols: 2
+                    # row_force_default: True
+                    # row_default_height: 40
+                    id: meanings_selection_list
                 # spacing: '20dp'
                 # padding: '25dp'
-                id: meanings_container
+                # overlay_color: app.theme_cls.primary_dark[:-1] + [.2]
+                # icon_bg_color: app.theme_cls.primary_dark
+                # icon_pos: [Window.size[0] - 65, 10]
+                # on_selected: app.on_selected(*args)
+                # on_unselected: app.on_unselected(*args)
+                # on_selected_mode: app.set_selection_mode(*args)
+
 
 <MeaningsPanelContent>
+    cols: 2
     # size_hint_y: None
     # height: self.minimum_height
-    orientation: "vertical"
+    # orientation: "vertical"
     padding: dp(10)
     spacing: dp(10)
     adaptive_height: True
+
+<MeaningMDCheckbox>
+    size_hint: (None, 1)
+    size: (48, 74)
+    width: 74
+    pos_hint: {'center_x': .5, 'center_y': .5}
+    on_active: root.on_checkbox_active(*args)
