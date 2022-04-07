@@ -10,4 +10,6 @@ def get_root_path() -> str:
         path = f'/storage/emulated/0/Android/data/{package_name}/files/'
     else:  # platform == 'win'
         path = 'files/'
+    if not os.path.exists(path + 'media/'):
+        os.makedirs(path + 'media/')
     return path

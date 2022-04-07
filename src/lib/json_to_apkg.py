@@ -108,8 +108,6 @@ class JsonToApkg:
         # apkg_filename = 'output-' + dt.now().strftime("%Y%m%d%H%M%S") + '.apkg'
         apkg_filename = 'output' + '.apkg'
         # print('before writing')
-        if not os.path.exists(root_path):
-            os.makedirs(root_path)
         my_package.write_to_file(root_path + apkg_filename)
         return apkg_filename
 

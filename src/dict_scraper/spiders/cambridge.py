@@ -370,8 +370,6 @@ class CambridgeSpider:
             # print(filename)
             tts = gTTS(word, lang='en', tld=tld)
 
-            if not os.path.exists(root_path):
-                os.makedirs(root_path)
             if not os.path.exists(root_path + filename):
                 tts.save(root_path + filename)
 

@@ -52,7 +52,6 @@ from kivy.uix.button import Button
 from kivy.utils import get_color_from_hex
 
 from src.dict_scraper.spiders import cambridge
-from src.db import connection, cursor
 from src.lib.helpers import get_root_path
 from src.lib.json_to_apkg import JsonToApkg
 from src.lib.strings import get_text
@@ -461,6 +460,7 @@ class MenuScreen(MDScreen):
             self.tld = tld
 
     def generate_flashcards(self, btn):
+        from src.db import connection, cursor
         selected_checkboxes = []
         for checkbox in CONTAINER['m_checkboxes']:
             if type(checkbox) is list:
@@ -838,6 +838,7 @@ class MyApp(MDApp):
             #     CONTAINER['tags_input_text'] += chr(key)
 
     def open_tags_dropdown(self, key=None):
+        from src.db import cursor
         menu_screen = self.root.get_screen("menu_screen")
         menu_screen_instance = self.get_running_app().menu_screen_instance
         menu_items = []
