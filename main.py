@@ -5,6 +5,7 @@
 # /storage/emulate/0/Download
 # '/storage/emulated/0/Android/data/org.test.vocabtoanki/files/media/'
 # settings_path /data/user/0/org.test.vocabtoanki/files
+# /data/user/0/org.test.vocabtoanki/files
 # https://pyjnius.readthedocs.io/en/stable/android.html
 # plyer
 # https://python-for-android.readthedocs.io/en/latest/apis/
@@ -53,7 +54,9 @@ from glob import glob
 import ssl
 
 from src.app import MyApp
+from src.db import connection
 from src.lib.helpers import get_root_path
+
 
 if __name__ == '__main__':
     if 'ANDROID_STORAGE' in os.environ:
@@ -72,3 +75,5 @@ if __name__ == '__main__':
     for f in mp3_files:
         os.remove(f)
     os.remove(root_path + 'output.apkg')
+
+    connection.close()

@@ -8,10 +8,10 @@ import json
 import re
 import traceback
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s:%(levelname)s:%(message)s"
-)
+# logging.basicConfig(
+#     level=logging.DEBUG,
+#     format="%(asctime)s:%(levelname)s:%(message)s"
+# )
 
 import bs4
 import urllib3
@@ -24,9 +24,11 @@ from bs4 import BeautifulSoup
 
 from kivy.animation import Animation
 from kivy import require, platform
+from kivy.metrics import dp
+from kivy.properties import StringProperty
 from kivymd.app import MDApp
 from kivymd.toast import toast
-from kivymd.uix.list import OneLineListItem, TwoLineListItem
+from kivymd.uix.list import OneLineListItem, TwoLineListItem, OneLineIconListItem
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.button import MDFlatButton, MDRaisedButton, MDRectangleFlatButton, MDIconButton, MDFloatingActionButton
@@ -34,6 +36,7 @@ from kivymd.uix.menu import MDDropdownMenu
 from kivy.lang.builder import Builder
 from kivy.uix.screenmanager import Screen, ScreenManager
 from kivy.core.window import Window
+from kivymd.uix.screen import MDScreen
 from kivymd.uix.toolbar import MDToolbar
 from kivymd.uix.expansionpanel import MDExpansionPanel, MDExpansionPanelTwoLine
 from kivymd.uix.selectioncontrol import MDCheckbox
@@ -49,15 +52,17 @@ from kivy.uix.button import Button
 from kivy.utils import get_color_from_hex
 
 from src.dict_scraper.spiders import cambridge
+from src.db import connection, cursor
 from src.lib.helpers import get_root_path
 from src.lib.json_to_apkg import JsonToApkg
 from src.lib.strings import get_text
 
 
 # os.environ["KIVY_NO_CONSOLELOG"] = "1"
-require('2.1.0')
+# require('2.1.0')
 
-CONTAINER = {'current_url': '', 'requests': [], 'm_checkboxes': [], 'm_checkboxes_selected': 0, 'm_checkboxes_total': 0}
+CONTAINER = {'current_url': '', 'requests': [], 'tags': [], 'tags_input_text': '',
+             'm_checkboxes': [], 'm_checkboxes_selected': 0, 'm_checkboxes_total': 0}
 DICTIONARIES = {
     get_text("cambridge"): "dictionary.cambridge.org/dictionary/english/",
     get_text("dictionary_com"): "dictionary.com/browse/",
@@ -221,12 +226,18 @@ class MeaningMDCheckbox(MDCheckbox):
         #     print(checkbox)
 
 
-class MenuScreen(Screen):
+class IconListItem(OneLineIconListItem):
+    icon = StringProperty()
+
+
+class MenuScreen(MDScreen):
     def __init__(self, **kwargs):
         # call grid layout constructor
         super(MenuScreen, self).__init__(**kwargs)
-        self.dropdown_menu = None
+        self.dictionary_menu = None
+        self.tags_menu = None
         self.dialog = None
+        self.menu = None
         self.tld = 'com'
         self.timestamp = dt.now().strftime("%Y%m%d%H%M%S")
 
@@ -279,7 +290,7 @@ class MenuScreen(Screen):
         # self.submit = MDRectangleFlatButton(
         #     text='Submit',
         #     pos_hint={'center_x': 0.5, 'center_y': 0.4},
-        #     on_release=self.show_data
+        #     on_release=self.show_meanings
         # )
         # bind the button
         # self.submit.bind(on_press=self.press)
@@ -296,11 +307,26 @@ class MenuScreen(Screen):
     #         self.manager.transition.duration = 0.5
     #         self.manager.current = 'meanings_screen'
 
-    def open_dropdown(self):
-        if self.dropdown_menu is not None:
-            self.dropdown_menu.dismiss()
+    def check_it_down(self, label_obj, lang):
+        if lang == "us":
+            self.ids.check_us.active = True
+        elif lang == 'uk':
+            self.ids.check_uk.active = True
+        else:
+            pass
 
-        self.menu_list = [
+    def tags_input_focus_mode(self, is_focussed):
+        if is_focussed:
+            MDApp.get_running_app().open_tags_dropdown()
+        else:
+            if self.tags_menu:
+                self.tags_menu.dismiss()
+
+    def open_dictionary_dropdown(self):
+        if self.dictionary_menu is not None:
+            self.dictionary_menu.dismiss()
+
+        menu_items = [
             {
                 "viewclass": "OneLineListItem",
                 "text": get_text("cambridge"),
@@ -327,18 +353,14 @@ class MenuScreen(Screen):
                 "on_release": lambda x=get_text("vocabulary_com"): self.browse_dictionary(x)
             }
         ]
-        self.dropdown_menu = MDDropdownMenu(
+        self.dictionary_menu = MDDropdownMenu(
             caller=self.ids.dict_dropdown,
-            items=self.menu_list,
-            width_mult=4
+            items=menu_items,
+            position='bottom',
+            width_mult=4,
+            max_height=dp(248),
         )
-        self.dropdown_menu.open()
-
-    def find_word(self):
-        self.open_dropdown()
-
-    def find_idiom(self):
-        print("idiom is pressed")
+        self.dictionary_menu.open()
 
     def browse_dictionary(self, dictionary_name):
         webbrowser.open('https://' + DICTIONARIES[dictionary_name])
@@ -456,7 +478,21 @@ class MenuScreen(Screen):
             extracted_dictionary = cambridge.CambridgeSpider(
                 soup, self.tld, checkbox.section_tuple
             ).parse()
-            notes.append(jta.generate_note(extracted_dictionary))
+            notes.append(jta.generate_note(extracted_dictionary, CONTAINER['tags']))
+        # ToDo: Add a database row of tag if not exists
+        # print(CONTAINER['tags'])
+        for tag in CONTAINER['tags']:
+            try:
+                cursor.execute("""
+                INSERT OR REPLACE INTO tags (tag) VALUES (?)
+                """, (tag,))
+            except Exception as e:
+                print(e)
+                print(traceback.format_exc())
+            # print("inserted")
+        # print('committing')
+        connection.commit()
+        # print('committed')
         jta.generate_apkg(notes)
 
         MDApp.get_running_app().soft_restart()
@@ -490,8 +526,11 @@ class MenuScreen(Screen):
         else:
             checkbox.active = True
 
-    def show_data(self):
+    def show_meanings(self):
         word_url = self.ids.word_input.text.split('#')[0].split('?')[0]
+        CONTAINER['tags'] = self.ids.tags_input.text.split()
+        if not CONTAINER['tags']:
+            CONTAINER['tags'] = ['']
         dict_name = None
         if not validators.url(word_url):
             self.toast(get_text("url_not_found"))
@@ -597,11 +636,11 @@ class MenuScreen(Screen):
         # ))
 
         # clear the input boxes
-        self.ids.word_input.text = ""
+        # self.ids.word_input.text = ""
         return True
 
 
-class MeaningsScreen(Screen):
+class MeaningsScreen(MDScreen):
     def __init__(self, **kwargs):
         # call grid layout constructor
         super(MeaningsScreen, self).__init__(**kwargs)
@@ -675,15 +714,19 @@ class MyApp(MDApp):
     menu_screen_instance = MenuScreen()
     meanings_screen_instance = MeaningsScreen()
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.screen = Builder.load_file("src/app.kv")
+
     def build(self):
+        Window.bind(on_keyboard=self._on_keyboard_handler)
         # sm.add_widget(MenuScreen(name='menu_screen'))
         # sm.add_widget(MeaningsScreen(name='meanings_screen'))
         self.title = get_text("app_title")
         self.theme_cls.primary_palette = "Blue"
         self.theme_cls.theme_style = "Dark"
         self.theme_cls.material_style = "M3"
-        screen = Builder.load_file("src/app.kv")
-        return screen
+        return self.screen
         # return sm
         # return MyLayout()
 
@@ -713,6 +756,7 @@ class MyApp(MDApp):
         self.stop()
         global CONTAINER
         CONTAINER['current_url'] = ''
+        CONTAINER['tags'] = []
         CONTAINER['m_checkboxes'] = []
         CONTAINER['m_checkboxes_selected'] = 0
         CONTAINER['m_checkboxes_total'] = 0
@@ -732,11 +776,10 @@ class MyApp(MDApp):
     def soft_restart(self):
         global CONTAINER
         CONTAINER['current_url'] = ''
+        CONTAINER['tags'] = []
         CONTAINER['m_checkboxes'] = []
         CONTAINER['m_checkboxes_selected'] = 0
         CONTAINER['m_checkboxes_total'] = 0
-        self.root.transition.direction = 'right'
-        self.root.transition.duration = 0.5  # 0.5 second
 
         meanings_screen = self.root.get_screen("meanings_screen")
         meanings_screen.ids.toolbar.title = get_text("app_title")
@@ -746,7 +789,10 @@ class MyApp(MDApp):
             # meanings_screen.ids.toolbar.right_action_items = \
             #     [[get_text("select_all_icon"), lambda x: self.get_running_app().meanings_screen_instance.select_all()]]
         meanings_screen.ids.meanings_selection_list.clear_widgets()
-        self.root.current = 'menu_screen'
+        # self.root.transition.direction = 'right'
+        # self.root.transition.duration = 0.5  # 0.5 second
+        # self.root.current = 'menu_screen'
+        self.change_screen()
 
     # def callback(self, button):
     #     Snackbar(text="Hello World").open()
@@ -772,6 +818,71 @@ class MyApp(MDApp):
     #     Animation(md_bg_color=md_bg_color, d=0.2).start(meanings_screen.ids.toolbar)
     #     meanings_screen.ids.toolbar.left_action_items = left_action_items
     #     meanings_screen.ids.toolbar.right_action_items = right_action_items
+
+    def _on_keyboard_handler(self, instance, key, *args):
+        # print(key, chr(key))
+        menu_screen = self.root.get_screen("menu_screen")
+
+        if menu_screen.ids.tags_input.focus:
+            menu_screen_instance = self.get_running_app().menu_screen_instance
+            if menu_screen_instance.tags_menu:
+                menu_screen_instance.tags_menu.dismiss()
+            if key == 8:
+                self.open_tags_dropdown()
+            else:
+                self.open_tags_dropdown(chr(key))
+                # CONTAINER['tags_input_text'] = CONTAINER['tags_input_text'][:-1]
+            # elif key == 32:
+            #     CONTAINER['tags_input_text'] = ''
+            # else:
+            #     CONTAINER['tags_input_text'] += chr(key)
+
+    def open_tags_dropdown(self, key=None):
+        menu_screen = self.root.get_screen("menu_screen")
+        menu_screen_instance = self.get_running_app().menu_screen_instance
+        menu_items = []
+        try:
+            typed_tag = menu_screen.ids.tags_input.text.split()[-1] if key is None \
+                else menu_screen.ids.tags_input.text.split()[-1] + key
+        except IndexError:
+            typed_tag = ''
+        # print("typed_tag:", typed_tag)
+        if not typed_tag:
+            cursor.execute(f"SELECT tag FROM tags ORDER BY tag DESC LIMIT 5")
+        else:
+            cursor.execute(f"SELECT tag FROM tags WHERE tag LIKE '%{typed_tag}%' ORDER BY tag DESC LIMIT 5")
+        for row in cursor.fetchall():
+            some_dict = {
+                "viewclass": "IconListItem",
+                "icon": get_text("tag_icon"),
+                "height": dp(56),
+                "text": row[0],
+                "on_release": lambda x=row[0]: self.set_tag(x),
+            }
+            menu_items.append(some_dict)
+        menu_screen_instance.tags_menu = MDDropdownMenu(
+            caller=menu_screen.ids.tags_input,
+            items=menu_items,
+            position='bottom',
+            width_mult=4,
+        )
+        menu_screen_instance.tags_menu.open()
+
+    def set_tag(self, tag):
+        menu_screen = self.root.get_screen("menu_screen")
+        menu_screen_instance = self.get_running_app().menu_screen_instance
+
+        tags = menu_screen.ids.tags_input.text
+        if ' ' in tags:
+            tags_list = tags.split()
+            tags_list[-1] = tag
+            tags = ' '.join(tags_list)
+        else:
+            tags = tag
+
+        menu_screen.ids.tags_input.text = tags + ' '
+        menu_screen_instance.tags_menu.dismiss()
+        menu_screen.ids.tags_input.focus = True
 
     def on_selected(self):
         meanings_screen = self.root.get_screen("meanings_screen")

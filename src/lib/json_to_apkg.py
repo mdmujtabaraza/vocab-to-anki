@@ -113,7 +113,7 @@ class JsonToApkg:
         my_package.write_to_file(root_path + apkg_filename)
         return apkg_filename
 
-    def generate_note(self, j_dict):
+    def generate_note(self, j_dict, tags):
         # create/initialize model
         # print('before my_model')
         # >>> random.randrange(1 << 30, 1 << 31)
@@ -167,7 +167,8 @@ class JsonToApkg:
         # print('Before my_note')
         my_note = genanki.Note(
             model=my_model,
-            fields=list_of_fields
+            fields=list_of_fields,
+            tags=tags
         )
         return my_note
 

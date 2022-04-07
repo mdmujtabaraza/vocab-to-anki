@@ -11,6 +11,8 @@
 
   "paste_here": "Paste word/expression url here",
   "chose_accent": "Select Pronunciation Accent",
+  "tag_info": "Enter tags separated by space",
+  "sample_tags": "IELTS Phrasal_Verb Intermediate",
   "en_uk": "English (United Kingdom)",
   "en_us": "English (United States)",
   "generate_flashcards": "Generate Anki Flashcards",
@@ -29,6 +31,7 @@
   "select_none_icon": "select-off",
   "paste_icon": "clipboard-file",
   "export_icon": "file-export",
+  "tag_icon": "tag",
 
   "browse_button": "Browse",
 
