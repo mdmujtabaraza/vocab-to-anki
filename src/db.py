@@ -1,28 +1,80 @@
 import sqlite3
 
-from src.lib.helpers import get_root_path
 
-connection = sqlite3.connect(f'{get_root_path()}data.db')
-cursor = connection.cursor()
+def create_connection(db_path):
+    """ create a database connection to the SQLite database
+    :param db_path: Path to db
+    :return: Connection object or None
+    """
+    conn = None
+    try:
+        conn = sqlite3.connect(db_path)
+        return conn
+    except sqlite3.Error as e:
+        print(e)
 
-# https://stackoverflow.com/a/44951682
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS tags(
-tag TEXT NOT NULL COLLATE NOCASE,
-PRIMARY KEY(tag)
-)
-""")
-# dt datetime default current_timestamp
+    return conn
 
-# Without a COLLATE INDEX our queries will do a full table scan
-# EXPLAIN QUERY PLAN SELECT * FROM tags WHERE tag = 'some-tag;
-# output: SCAN TABLE tags
 
-# When COLLATE NOCASE index is present, the query does not scan all rows.
-# EXPLAIN QUERY PLAN SELECT * FROM tags WHERE tag = 'some-tag';
-# output: SEARCH TABLE tags USING INDEX idx_nocase_tags (tag=?)
+def create_table(conn, create_table_sql):
+    """ create a table from the create_table_sql statement
+    :param conn: Connection object
+    :param create_table_sql: a CREATE TABLE statement
+    :return:
+    """
+    try:
+        c = conn.cursor()
+        c.execute(create_table_sql)
+    except sqlite3.Error as e:
+        print(e)
 
-# Refer: https://www.designcise.com/web/tutorial/how-to-do-case-insensitive-comparisons-in-sqlite
-cursor.execute("""
-CREATE INDEX IF NOT EXISTS idx_nocase_tags ON tags (tag COLLATE NOCASE)
-""")
+
+def create_tag(conn, tag):
+    """
+    Create a new tag
+    :param conn:
+    :param tag:
+    :return:
+    """
+
+    sql = ''' INSERT OR REPLACE INTO tags (tag) VALUES (?) '''
+    cur = conn.cursor()
+    cur.execute(sql, tag)
+    conn.commit()
+
+    return cur.lastrowid
+
+
+def select_all_tags(conn):
+    """
+    Query all rows in the tags table
+    :param conn: the Connection object
+    :return:
+    """
+    cur = conn.cursor()
+    cur.execute("SELECT tag FROM tags ORDER BY tag DESC LIMIT 5")
+
+    rows = cur.fetchall()
+
+    # for row in rows:
+    #     print(row)
+
+    return rows
+
+
+def select_tags_which_contains(conn, tag):
+    """
+    Query tags by tag
+    :param conn: the Connection object
+    :param tag:
+    :return:
+    """
+    cur = conn.cursor()
+    cur.execute(f"SELECT tag FROM tags WHERE tag LIKE '%{tag}%' ORDER BY tag DESC LIMIT 5")
+
+    rows = cur.fetchall()
+
+    # for row in rows:
+    #     print(row)
+
+    return rows

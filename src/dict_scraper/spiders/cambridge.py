@@ -1,61 +1,13 @@
 import os
 import re
 
-import requests
 from gtts import gTTS
-from bs4.element import ResultSet, Tag
 
-from src.lib.helpers import get_root_path
+from src.lib.helpers import extract_text, get_root_path, get_tree, get_valid_filename
 
 
 allowed_domains = ['dictionary.cambridge.org']
 start_urls = ['https://dictionary.cambridge.org/']
-
-
-class SuspiciousOperation(Exception):
-    """The user did something suspicious"""
-
-
-def get_valid_filename(name):
-    """
-    Return the given string converted to a string that can be used for a clean
-    filename. Remove leading and trailing spaces; convert other spaces to
-    underscores; and remove anything that is not an alphanumeric, dash,
-    underscore, or dot.
-    >>> get_valid_filename("john's portrait in 2004.jpg")
-    'johns_portrait_in_2004.jpg'
-    """
-    s = str(name).strip().replace(" ", "-")
-    s = re.sub(r"(?u)[^-\w.]", "", s)
-    if s in {"", ".", ".."}:
-        raise SuspiciousOperation("Could not derive file name from '%s'" % name)
-    return s
-
-
-def get_tree(branch, seen, *args, **kwargs):
-    out = []
-    for d in branch.find_all("div", class_="cid"):
-        if d not in seen:
-            seen.add(d)
-            out.append(d["id"])
-            t = get_tree(d, seen)
-            if t:
-                out.append(t)
-    return out
-
-
-def extract_text(data, join_char=''):
-    strings = []
-    if type(data) is ResultSet:
-        if data:
-            for element in data:
-                for string in element.strings:
-                    strings.append(repr(string)[1:-1])
-    elif type(data) is Tag:
-        if data:
-            for string in data.strings:
-                strings.append(repr(string)[1:-1])
-    return join_char.join(strings)
 
 
 class MeaningsSpider:

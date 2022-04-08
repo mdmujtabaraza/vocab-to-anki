@@ -23,14 +23,14 @@ import validators
 from bs4 import BeautifulSoup
 
 from kivy.animation import Animation
-from kivy import require, platform
+from kivy import require
 from kivy.metrics import dp
 from kivy.properties import StringProperty
 from kivymd.app import MDApp
 from kivymd.toast import toast
 from kivymd.uix.list import OneLineListItem, TwoLineListItem, OneLineIconListItem
 from kivymd.uix.dialog import MDDialog
-from kivymd.uix.boxlayout import MDBoxLayout
+from kivymd.uix.relativelayout import MDRelativeLayout
 from kivymd.uix.button import MDFlatButton, MDRaisedButton, MDRectangleFlatButton, MDIconButton, MDFloatingActionButton
 from kivymd.uix.menu import MDDropdownMenu
 from kivy.lang.builder import Builder
@@ -51,8 +51,9 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.utils import get_color_from_hex
 
+from src.db import create_connection, create_table, create_tag, select_all_tags, select_tags_which_contains
 from src.dict_scraper.spiders import cambridge
-from src.lib.helpers import get_root_path
+from src.lib.helpers import get_root_path, is_platform, check_android_permissions, request_android_permissions
 from src.lib.json_to_apkg import JsonToApkg
 from src.lib.strings import get_text
 
@@ -60,7 +61,7 @@ from src.lib.strings import get_text
 # os.environ["KIVY_NO_CONSOLELOG"] = "1"
 # require('2.1.0')
 
-CONTAINER = {'current_url': '', 'requests': [], 'tags': [], 'tags_input_text': '',
+CONTAINER = {'current_url': '', 'requests': [], 'tags': [],
              'm_checkboxes': [], 'm_checkboxes_selected': 0, 'm_checkboxes_total': 0}
 DICTIONARIES = {
     get_text("cambridge"): "dictionary.cambridge.org/dictionary/english/",
@@ -70,7 +71,7 @@ DICTIONARIES = {
     get_text("vocabulary_com"): "vocabulary.com/dictionary/",
 }
 HEADERS = {
-    'User-Agent': generate_user_agent(device_type='smartphone' if 'ANDROID_STORAGE' in os.environ else 'desktop'),
+    'User-Agent': generate_user_agent(device_type='smartphone' if is_platform('android') else 'desktop'),
     'Referer': 'https://www.google.com'
 }
 
@@ -146,6 +147,12 @@ def clear_request(word_url=None):
 # ----------------------------------- KIVY -------------------------------------
 
 # Window.size = (500, 400)
+
+
+class ClickableTextFieldRound(MDRelativeLayout):
+    text = StringProperty()
+    hint_text = StringProperty()
+    helper_text = StringProperty()
 
 
 class MeaningsPanelContent(MDGridLayout):
@@ -355,7 +362,7 @@ class MenuScreen(MDScreen):
         self.dictionary_menu = MDDropdownMenu(
             caller=self.ids.dict_dropdown,
             items=menu_items,
-            position='bottom',
+            position='center',
             width_mult=4,
             max_height=dp(248),
         )
@@ -460,7 +467,6 @@ class MenuScreen(MDScreen):
             self.tld = tld
 
     def generate_flashcards(self, btn):
-        from src.db import connection, cursor
         selected_checkboxes = []
         for checkbox in CONTAINER['m_checkboxes']:
             if type(checkbox) is list:
@@ -483,17 +489,12 @@ class MenuScreen(MDScreen):
         # print(CONTAINER['tags'])
         for tag in CONTAINER['tags']:
             try:
-                cursor.execute("""
-                INSERT OR REPLACE INTO tags (tag) VALUES (?)
-                """, (tag,))
+                create_tag(MDApp.get_running_app().db_connection, (tag,))
             except Exception as e:
                 print(e)
                 print(traceback.format_exc())
             # print("inserted")
-        # print('committing')
-        connection.commit()
-        # print('committed')
-        jta.generate_apkg(notes)
+        apkg_filename = jta.generate_apkg(notes)
 
         MDApp.get_running_app().soft_restart()
         self.dialog_popup(
@@ -527,10 +528,8 @@ class MenuScreen(MDScreen):
             checkbox.active = True
 
     def show_meanings(self):
-        word_url = self.ids.word_input.text.split('#')[0].split('?')[0]
+        word_url = self.ids.url_field.text.split('#')[0].split('?')[0]
         CONTAINER['tags'] = self.ids.tags_input.text.split()
-        if not CONTAINER['tags']:
-            CONTAINER['tags'] = ['']
         dict_name = None
         if not validators.url(word_url):
             self.toast(get_text("url_not_found"))
@@ -557,6 +556,11 @@ class MenuScreen(MDScreen):
                 dict_name = name
                 break
         if dict_name:
+            if not check_android_permissions():
+                self.dialog.dismiss()
+                MDApp.get_running_app().soft_restart()
+                return False
+            MDApp.get_running_app().create_tables()
             # d = runner.crawl(
             #     CambridgeSpider,
             #     url=word_url,
@@ -717,6 +721,7 @@ class MyApp(MDApp):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.screen = Builder.load_file("src/app.kv")
+        self.db_connection = None
 
     def build(self):
         Window.bind(on_keyboard=self._on_keyboard_handler)
@@ -731,25 +736,9 @@ class MyApp(MDApp):
         # return MyLayout()
 
     def on_start(self):
+        print('Starting...')
         print("Size:", Window.size)
-        if platform == 'android':
-            try:
-                from android.storage import app_storage_path
-                settings_path = app_storage_path()
-                print("settings_path", settings_path)
-
-                from android.storage import primary_external_storage_path
-                primary_ext_storage = primary_external_storage_path()
-                print("primary_ext_storage", primary_ext_storage)
-
-                from android.storage import secondary_external_storage_path
-                secondary_ext_storage = secondary_external_storage_path()
-                print("secondary_ext_storage", secondary_ext_storage)
-            except Exception as e:
-                print("Error printing paths", e)
-
-            from android.permissions import request_permissions, Permission
-            request_permissions([Permission.READ_EXTERNAL_STORAGE, Permission.WRITE_EXTERNAL_STORAGE])
+        request_android_permissions()
 
     def restart(self):
         self.root.clear_widgets()
@@ -774,12 +763,14 @@ class MyApp(MDApp):
             self.root.current = 'menu_screen'
 
     def soft_restart(self):
+        print('Restarting..')
         global CONTAINER
         CONTAINER['current_url'] = ''
         CONTAINER['tags'] = []
         CONTAINER['m_checkboxes'] = []
         CONTAINER['m_checkboxes_selected'] = 0
         CONTAINER['m_checkboxes_total'] = 0
+        request_android_permissions()
 
         meanings_screen = self.root.get_screen("meanings_screen")
         meanings_screen.ids.toolbar.title = get_text("app_title")
@@ -789,10 +780,37 @@ class MyApp(MDApp):
             # meanings_screen.ids.toolbar.right_action_items = \
             #     [[get_text("select_all_icon"), lambda x: self.get_running_app().meanings_screen_instance.select_all()]]
         meanings_screen.ids.meanings_selection_list.clear_widgets()
-        # self.root.transition.direction = 'right'
-        # self.root.transition.duration = 0.5  # 0.5 second
-        # self.root.current = 'menu_screen'
-        self.change_screen()
+        self.root.transition.direction = 'right'
+        self.root.transition.duration = 0.5  # 0.5 second
+        self.root.current = 'menu_screen'
+        # self.change_screen()
+
+    def create_tables(self):
+        if self.db_connection is not None:
+            return True
+        db_path = f'{get_root_path()}data.db'
+        self.db_connection = create_connection(db_path)
+        # https://stackoverflow.com/a/44951682
+        sql_create_tags_table = """
+                                CREATE TABLE IF NOT EXISTS tags(
+                                tag TEXT NOT NULL COLLATE NOCASE,
+                                PRIMARY KEY(tag)
+                                )
+                                """
+        create_table(self.db_connection, sql_create_tags_table)
+
+        # https://www.designcise.com/web/tutorial/how-to-do-case-insensitive-comparisons-in-sqlite
+        # Without a COLLATE INDEX our queries will do a full table scan
+        # EXPLAIN QUERY PLAN SELECT * FROM tags WHERE tag = 'some-tag;
+        # output: SCAN TABLE tags
+        # When COLLATE NOCASE index is present, the query does not scan all rows.
+        # EXPLAIN QUERY PLAN SELECT * FROM tags WHERE tag = 'some-tag';
+        # output: SEARCH TABLE tags USING INDEX idx_nocase_tags (tag=?)
+        sql_create_tags_index = """
+                                CREATE INDEX IF NOT EXISTS idx_nocase_tags ON tags (tag COLLATE NOCASE)
+                                """
+        create_table(self.db_connection, sql_create_tags_index)
+        return True
 
     # def callback(self, button):
     #     Snackbar(text="Hello World").open()
@@ -838,7 +856,10 @@ class MyApp(MDApp):
             #     CONTAINER['tags_input_text'] += chr(key)
 
     def open_tags_dropdown(self, key=None):
-        from src.db import cursor
+        if not check_android_permissions():
+            self.soft_restart()
+            return False
+        self.create_tables()
         menu_screen = self.root.get_screen("menu_screen")
         menu_screen_instance = self.get_running_app().menu_screen_instance
         menu_items = []
@@ -849,10 +870,10 @@ class MyApp(MDApp):
             typed_tag = ''
         # print("typed_tag:", typed_tag)
         if not typed_tag:
-            cursor.execute(f"SELECT tag FROM tags ORDER BY tag DESC LIMIT 5")
+            rows = select_all_tags(self.db_connection)
         else:
-            cursor.execute(f"SELECT tag FROM tags WHERE tag LIKE '%{typed_tag}%' ORDER BY tag DESC LIMIT 5")
-        for row in cursor.fetchall():
+            rows = select_tags_which_contains(self.db_connection, typed_tag)
+        for row in rows:
             some_dict = {
                 "viewclass": "IconListItem",
                 "icon": get_text("tag_icon"),
@@ -864,7 +885,8 @@ class MyApp(MDApp):
         menu_screen_instance.tags_menu = MDDropdownMenu(
             caller=menu_screen.ids.tags_input,
             items=menu_items,
-            position='bottom',
+            position='auto',
+            ver_growth='up' if is_platform('android') else 'down',
             width_mult=4,
         )
         menu_screen_instance.tags_menu.open()

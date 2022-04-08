@@ -54,20 +54,13 @@ from glob import glob
 import ssl
 
 from src.app import MyApp
-from src.db import connection
 from src.lib.helpers import get_root_path
 
 
-if __name__ == '__main__':
-    if 'ANDROID_STORAGE' in os.environ:
-        try:
-            from android import loadingscreen
-
-            loadingscreen.hide_loading_screen()
-        except Exception as e:
-            print("Loading screen is not removed", e)
+def main():
     ssl._create_default_https_context = ssl._create_unverified_context
     MyApp().run()
+    MyApp().db_connection.close()
 
     # Delete Files on exit.
     root_path = get_root_path()
@@ -76,4 +69,6 @@ if __name__ == '__main__':
         os.remove(f)
     os.remove(root_path + 'output.apkg')
 
-    connection.close()
+
+if __name__ == '__main__':
+    main()

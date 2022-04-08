@@ -88,7 +88,7 @@ class JsonToApkg:
     def __init__(self):
         pass
 
-    def generate_apkg(self, notes):
+    def generate_apkg(self, notes) -> str:
         # print('Before my_deck')
         my_deck = genanki.Deck(
             1646145285163,  # todo: change id and name

@@ -48,22 +48,14 @@ ScreenManager:
                 font_style: 'Button'
                 pos_hint: {"center_x": 0.5, 'center_y': 0.89}
                 on_release: root.open_dictionary_dropdown()
-            MDTextField:
-                id: word_input
-                text: get_text("sample_url")
+            ClickableTextFieldRound:
+                id: url_field
                 padding: "10dp"
-                multiline: False
+                text: get_text("sample_url")
                 hint_text: get_text("paste_here")
                 helper_text: f"ex: {get_text('sample_url')}"
-                helper_text_mode: "on_focus"
-                # icon_right: get_text('paste_icon')
-                # icon_right_color: app.theme_cls.primary_color
                 size_hint: (.75, .1)
-                pos_hint: {'center_x': 0.45, 'center_y': 0.72}
-            MDIconButton:
-                icon: get_text('paste_icon')
-                pos_hint: {"center_x": .9, "center_y": .72}
-                on_release: word_input.text = Clipboard.paste()
+                pos_hint: {"center_x": .45, "center_y": .72}
             # MDLabel:
             #     text: get_text("chose_accent")
             #     theme_text_color: 'Primary'
@@ -92,11 +84,11 @@ ScreenManager:
                 on_focus: root.tags_input_focus_mode(self.focus)
             BoxLayout:
                 orientation: 'horizontal'
-                size_hint: (.9, .3)
-                pos_hint: {"center_x": .54, "center_y": .42}
+                size_hint: (.88, .3)
+                pos_hint: {"center_x": .5, "center_y": .42}
                 Check:
                     id: check_uk
-                    width: 36
+                    width: 48
                     pos_hint: {"center_x": .12, "center_y": .4}
                     on_active: root.checkbox_click(self, self.active, "co.uk")
                 MDLabel:
@@ -107,7 +99,7 @@ ScreenManager:
                     on_ref_press: root.check_it_down(*args)
                 Check:
                     id: check_us
-                    width: 36
+                    width: 48
                     pos_hint: {"center_x": .25, "center_y": .4}
                     active: True
                     on_active: root.checkbox_click(self, self.active, "com")
@@ -183,3 +175,23 @@ ScreenManager:
 
     IconLeftWidget:
         icon: root.icon
+
+<ClickableTextFieldRound>:
+    size_hint_y: None
+    height: word_input.height
+
+    MDTextField:
+        id: word_input
+        multiline: False
+        hint_text: root.hint_text
+        text: root.text
+        helper_text: root.helper_text
+        helper_text_mode: "on_focus"
+        icon_left: get_text("tag_icon")
+
+    MDIconButton:
+        icon: get_text('paste_icon')
+        pos_hint: {"center_y": .5}
+        pos: word_input.width - self.width + dp(8), 0
+        theme_text_color: "Hint"
+        on_release: word_input.text = Clipboard.paste()
