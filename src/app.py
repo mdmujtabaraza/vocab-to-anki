@@ -149,12 +149,6 @@ def clear_request(word_url=None):
 # Window.size = (500, 400)
 
 
-class ClickableTextFieldRound(MDRelativeLayout):
-    text = StringProperty()
-    hint_text = StringProperty()
-    helper_text = StringProperty()
-
-
 class MeaningsPanelContent(MDGridLayout):
     def __init__(self, *args, **kwargs):
         super().__init__()
@@ -528,7 +522,7 @@ class MenuScreen(MDScreen):
             checkbox.active = True
 
     def show_meanings(self):
-        word_url = self.ids.url_field.text.split('#')[0].split('?')[0]
+        word_url = self.ids.word_input.text.split('#')[0].split('?')[0]
         CONTAINER['tags'] = self.ids.tags_input.text.split()
         dict_name = None
         if not validators.url(word_url):

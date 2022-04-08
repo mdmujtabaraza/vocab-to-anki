@@ -48,14 +48,20 @@ ScreenManager:
                 font_style: 'Button'
                 pos_hint: {"center_x": 0.5, 'center_y': 0.89}
                 on_release: root.open_dictionary_dropdown()
-            ClickableTextFieldRound:
-                id: url_field
-                padding: "10dp"
+            MDTextField:
+                id: word_input
                 text: get_text("sample_url")
+                padding: "10dp"
+                multiline: False
                 hint_text: get_text("paste_here")
                 helper_text: f"ex: {get_text('sample_url')}"
+                helper_text_mode: "on_focus"
                 size_hint: (.75, .1)
-                pos_hint: {"center_x": .45, "center_y": .72}
+                pos_hint: {'center_x': 0.45, 'center_y': 0.72}
+            MDIconButton:
+                icon: get_text('paste_icon')
+                pos_hint: {"center_x": .9, "center_y": .72}
+                on_release: word_input.text = Clipboard.paste()
             # MDLabel:
             #     text: get_text("chose_accent")
             #     theme_text_color: 'Primary'
@@ -175,23 +181,3 @@ ScreenManager:
 
     IconLeftWidget:
         icon: root.icon
-
-<ClickableTextFieldRound>:
-    size_hint_y: None
-    height: word_input.height
-
-    MDTextField:
-        id: word_input
-        multiline: False
-        hint_text: root.hint_text
-        text: root.text
-        helper_text: root.helper_text
-        helper_text_mode: "on_focus"
-        icon_left: get_text("tag_icon")
-
-    MDIconButton:
-        icon: get_text('paste_icon')
-        pos_hint: {"center_y": .5}
-        pos: word_input.width - self.width + dp(8), 0
-        theme_text_color: "Hint"
-        on_release: word_input.text = Clipboard.paste()
