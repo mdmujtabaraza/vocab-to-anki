@@ -92,11 +92,13 @@ class JsonToApkg:
         # print('Before my_deck')
         my_deck = genanki.Deck(
             1646145285163,  # todo: change id and name
-            f"Eng_{'-'.join(get_text('app_title').split(' '))}_1646145285163")
+            f"Eng_{'-'.join(get_text('app_title').split())}_1646145285163")
 
         media_filenames = []
         for note in notes:
-            media_filenames.append(note.fields[4][7:-1:])
+            media_filenames.append(note.fields[1][7:-1:])
+            media_filenames.append(note.fields[6][7:-1:])
+            media_filenames.append(note.fields[8][7:-1:])
             my_deck.add_note(note)
 
         # add media
@@ -118,28 +120,30 @@ class JsonToApkg:
         # 1251836382
         my_model = genanki.Model(
             1251836382,
-            name=f"{'-'.join(get_text('app_title').split(' '))}_1251836382",
+            name=f"{'-'.join(get_text('app_title').split())}_1251836382",
             fields=[
                 {'name': 'Word'},
+                {'name': 'PronunciationWord'},
                 {'name': 'PartOfSpeech'},
                 {'name': 'Cloze'},
                 {'name': 'PhonemicScript'},
-                {'name': 'PronunciationWord'},
                 {'name': 'Meaning'},
+                {'name': 'PronunciationMeaning'},
                 {'name': 'Sentences'},
+                {'name': 'PronunciationSentences'},
                 {'name': 'Picture'},
                 {'name': 'Synonyms'},
             ],
             templates=[
                 {
                     'name': 'Card 1',
-                    'qfmt': " <div style='font-family: Segoe UI; font-size: 35px;'>{{Cloze}}</div>\n\n<div style='font-family: Segoe UI; font-size: 25px; color: green;'>{{Meaning}}</div>\n</br>Type your answer here:{{type:Word}}\n<br>\n{{Picture}}\n",
-                    'afmt': "{{type:Word}}\n</br>\n<div style='font-family: Segoe UI; font-size: 35px; color: blue'>{{Word}}</div>\n<div style='font-family: Segoe UI; font-size: 25px;'>{{PhonemicScript}}</div>\n</br>\n{{PronunciationWord}}\n<hr id=answer>\n</br>\n<div style='font-family: Segoe UI; font-size: 23px; color: green;'>{{Meaning}}</div>\n</br>\n<div style='font-family: Segoe UI; font-size: 20px; color: white;'>{{Sentences}}</div>\n</br>\n{{Synonyms}}",
+                    'qfmt': " <div style='font-family: Segoe UI; font-size: 35px;'>{{Cloze}}</div>\n\n<div style='font-family: Segoe UI; font-size: 25px; color: green;'>{{Meaning}} {{PronunciationMeaning}}</div>\n</br>Type your answer here:{{type:Word}}\n<br>\n{{Picture}}\n",
+                    'afmt': "{{type:Word}}\n</br>\n<div style='font-family: Segoe UI; font-size: 35px; color: blue'>{{Word}}</div>\n<div style='font-family: Segoe UI; font-size: 25px;'>{{PhonemicScript}}</div>\n</br>\n{{PronunciationWord}}\n<hr id=answer>\n</br>\n<div style='font-family: Segoe UI; font-size: 23px; color: green;'>{{Meaning}} {{PronunciationMeaning}}</div>\n</br>\n<div style='font-family: Segoe UI; font-size: 20px; color: white;'>{{Sentences}} {{PronunciationSentences}}</div>\n</br>\n{{Synonyms}}",
                 },
                 {
                     'name': 'Card 2',
-                    'qfmt': "TYPE WHAT YOU HEAR ------------->  {{PronunciationWord}}\n</br>\n<div style='font-family: Segoe UI; font-size: 25px; color: blue'>{{PhonemicScript}}</div>\n</br>\n{{type:Word}}\n</br>\n<div style='font-family: Segoe UI; font-size: 25px; color: green;'>{{Meaning}}</div>\n</br>\n{{Picture}}",
-                    'afmt': "{{type:Word}}\n</br>\n<div style='font-family: Segoe UI; font-size: 35px; color: blue'>{{Word}}</div>\n<div style='font-family: Segoe UI; font-size: 25px;'>{{PhonemicScript}}</div>\n</br>\nLISTEN AGAIN ------------->  {{PronunciationWord}}\n</br></br>\n<div style='font-family: Segoe UI; font-size: 25px; color: green;'>{{Meaning}}</div>\n</br>\n<div style='font-family: Segoe UI; font-size: 20px; color: white;'>{{Sentences}}</div>",
+                    'qfmt': "TYPE WHAT YOU HEAR ------------->  {{PronunciationWord}}\n</br>\n<div style='font-family: Segoe UI; font-size: 25px; color: blue'>{{PhonemicScript}}</div>\n</br>\n{{type:Word}}\n</br>\n<div style='font-family: Segoe UI; font-size: 25px; color: green;'>{{Meaning}} {{PronunciationMeaning}}</div>\n</br>\n{{Picture}}",
+                    'afmt': "{{type:Word}}\n</br>\n<div style='font-family: Segoe UI; font-size: 35px; color: blue'>{{Word}}</div>\n<div style='font-family: Segoe UI; font-size: 25px;'>{{PhonemicScript}}</div>\n</br>\nLISTEN AGAIN ------------->  {{PronunciationWord}}\n</br></br>\n<div style='font-family: Segoe UI; font-size: 25px; color: green;'>{{Meaning}} {{PronunciationMeaning}}</div>\n</br>\n<div style='font-family: Segoe UI; font-size: 20px; color: white;'>{{Sentences}} {{PronunciationSentences}}</div>\n</br>\n{{Synonyms}}",
                 },
             ],
             css=".card {\n font-family: Segoe UI;\n font-size: 20px;\n text-align: center;\n color: black;\n background-color: white;\n}\n#typeans { font-size:60px !important }",
@@ -151,12 +155,14 @@ class JsonToApkg:
         # print('before list_of_fields')
         list_of_fields = [
             j_dict.get("word", ""),
+            j_dict.get("pronunciation_word", ""),
             j_dict.get("part_of_speech", ""),
             generate_cloze(j_dict["word"]),  # j_dict.get("cloze", ""),
             j_dict.get("phonemic_script", ""),
-            j_dict.get("pronunciation_word", ""),
             j_dict.get("meaning", ""),
+            j_dict.get("pronunciation_meaning", ""),
             j_dict.get("sentences", ""),
+            j_dict.get("pronunciation_sentences", ""),
             "",  # j_dict.get("picture", ""),
             j_dict.get("synonyms", "")
         ]

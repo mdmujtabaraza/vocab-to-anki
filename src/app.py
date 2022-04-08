@@ -1,5 +1,6 @@
 import logging
 import os
+from glob import glob
 import subprocess
 import webbrowser
 from datetime import datetime as dt
@@ -21,6 +22,9 @@ from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 import validators
 from bs4 import BeautifulSoup
+
+from kivy.config import Config
+Config.set('kivy', 'exit_on_escape', '0')
 
 from kivy.animation import Animation
 from kivy import require
@@ -61,7 +65,7 @@ from src.lib.strings import get_text
 # os.environ["KIVY_NO_CONSOLELOG"] = "1"
 # require('2.1.0')
 
-CONTAINER = {'current_url': '', 'requests': [], 'tags': [],
+CONTAINER = {'current_url': '', 'requests': [], 'tags': [], 'tld': 'com',
              'm_checkboxes': [], 'm_checkboxes_selected': 0, 'm_checkboxes_total': 0}
 DICTIONARIES = {
     get_text("cambridge"): "dictionary.cambridge.org/dictionary/english/",
@@ -237,8 +241,6 @@ class MenuScreen(MDScreen):
         self.dictionary_menu = None
         self.tags_menu = None
         self.dialog = None
-        self.menu = None
-        self.tld = 'com'
         self.timestamp = dt.now().strftime("%Y%m%d%H%M%S")
 
         # set columns
@@ -306,14 +308,6 @@ class MenuScreen(MDScreen):
     #         self.manager.transition.direction = 'left'
     #         self.manager.transition.duration = 0.5
     #         self.manager.current = 'meanings_screen'
-
-    def check_it_down(self, label_obj, lang):
-        if lang == "us":
-            self.ids.check_us.active = True
-        elif lang == 'uk':
-            self.ids.check_uk.active = True
-        else:
-            pass
 
     def tags_input_focus_mode(self, is_focussed):
         if is_focussed:
@@ -458,7 +452,17 @@ class MenuScreen(MDScreen):
 
     def checkbox_click(self, instance, value, tld):
         if value is True:
-            self.tld = tld
+            CONTAINER['tld'] = tld
+
+    def check_it_down(self, label_obj, lang):
+        if lang == "us":
+            self.ids.check_us.active = True
+            CONTAINER['tld'] = 'com'
+        elif lang == 'uk':
+            self.ids.check_uk.active = True
+            CONTAINER['tld'] = 'co.uk'
+        else:
+            CONTAINER['tld'] = 'com'
 
     def generate_flashcards(self, btn):
         selected_checkboxes = []
@@ -476,7 +480,7 @@ class MenuScreen(MDScreen):
         soup = get_webpage(CONTAINER['current_url'])
         for checkbox in selected_checkboxes:
             extracted_dictionary = cambridge.CambridgeSpider(
-                soup, self.tld, checkbox.section_tuple
+                soup, CONTAINER['tld'], checkbox.section_tuple
             ).parse()
             notes.append(jta.generate_note(extracted_dictionary, CONTAINER['tags']))
         # ToDo: Add a database row of tag if not exists
@@ -719,6 +723,7 @@ class MyApp(MDApp):
 
     def build(self):
         Window.bind(on_keyboard=self._on_keyboard_handler)
+        Window.bind(on_request_close=self.on_request_close)
         # sm.add_widget(MenuScreen(name='menu_screen'))
         # sm.add_widget(MeaningsScreen(name='meanings_screen'))
         self.title = get_text("app_title")
@@ -740,6 +745,7 @@ class MyApp(MDApp):
         global CONTAINER
         CONTAINER['current_url'] = ''
         CONTAINER['tags'] = []
+        CONTAINER['tld'] = 'com'
         CONTAINER['m_checkboxes'] = []
         CONTAINER['m_checkboxes_selected'] = 0
         CONTAINER['m_checkboxes_total'] = 0
@@ -848,6 +854,20 @@ class MyApp(MDApp):
             #     CONTAINER['tags_input_text'] = ''
             # else:
             #     CONTAINER['tags_input_text'] += chr(key)
+
+    def on_request_close(self, *args):
+        print('Exiting..')
+        if self.db_connection is not None:
+            self.db_connection.close()
+        # Delete Files on exit.
+        print('Cleaning up..')
+        root_path = get_root_path()
+        mp3_files = glob(root_path + 'media/*.mp3')
+        for f in mp3_files:
+            os.remove(f)
+        os.remove(root_path + 'output.apkg')
+        print('Cleaned.')
+        exit()
 
     def open_tags_dropdown(self, key=None):
         if not check_android_permissions():
