@@ -375,7 +375,7 @@ class MenuScreen(MDScreen):
         # pyperclip.copy("Convert url to cambridge")
 
     def toast(self, text='', duration=2.5):
-        if platform == 'android':
+        if is_platform('android'):
             toast(text=text, gravity=80, length_long=duration)
         else:
             toast(text=text, duration=duration)
@@ -390,7 +390,7 @@ class MenuScreen(MDScreen):
         # print(apkg_filename)
         # if platform.system() == 'Darwin':  # macOS
         #     subprocess.call(('open', path + apkg_filename))
-        if platform == 'win':  # Windows
+        if is_platform('win'):  # Windows
             os.startfile(os.path.join(path[:-1], apkg_filename))
         else:  # linux variants
             try:
