@@ -8,6 +8,7 @@ dependencies:
   - requests
   - genanki
   - gtts
+  - ibm-watson
   - validators
   - pip:
       - kivy[full]

@@ -5,6 +5,7 @@ import random
 from gtts import gTTS
 
 from src.lib.helpers import extract_text, get_root_path, get_tree, get_valid_filename
+from src.lib.ibm_tts import ibm_tts_authenticate, get_voice
 
 
 allowed_domains = ['dictionary.cambridge.org']
@@ -182,8 +183,9 @@ class CambridgeSpider:
     def __init__(self, soup, *args, **kwargs):
         # print(url, headers, args)
         self.soup = soup
-        self.tld = args[0]
+        self.lang = args[0]
         self.section_tuple = args[1]
+        self.ibm_tuple = args[2]
 
     # allowed_domains = ['dictionary.cambridge.org']
     # allowed_domains = ['web.archive.org']
@@ -194,8 +196,7 @@ class CambridgeSpider:
     def parse(self):
         # print(response.request.headers.get('Referer', None))
         # print(response.request.headers.get('User-Agent', None))
-        tld = getattr(self, 'tld')
-        print(tld)
+        lang = getattr(self, 'lang')
         section_tuple = getattr(self, 'section_tuple')
         # print(section_tuple)
         section_ids = section_tuple[0]
@@ -330,30 +331,42 @@ class CambridgeSpider:
         # part_of_speech = response.css("#cald4-1+ .dpos-h .dpos").css("::text").extract_first()
         # //div[@class="cid" and @id=cid]
 
-        if tld == "co.uk":
-            accent_tld = "uk"
-        else:  # tld == "com"
-            accent_tld = "us"
+        if lang == "uk":
+            gtts_tld = "co.uk"
+            watson_lang = "en-GB"
+        elif lang == "us":
+            gtts_tld = "com"
+            watson_lang = "en-US"
 
-        phonemic_script = extract_text(self.soup.select_one(f".{accent_tld} .lpl-1"))  # todo: what if 2 audio
+        phonemic_script = extract_text(self.soup.select_one(f".{lang} .lpl-1"))  # todo: what if 2 audio
         # us_phonemic_script = response.css(".us .lpl-1").css("::text").extract_first()
-        # pronunciation = response.css(f".{accent_tld} #ampaudio1 source::attr(src)").extract_first()  # amp-audio
+        # pronunciation = response.css(f".{lang} #ampaudio1 source::attr(src)").extract_first()  # amp-audio
         # us_pronunciation = response.css(".us #ampaudio2 source::attr(src)").extract_first()  # amp-audio
 
         def download_audio(text: str, text_type: str = '') -> str:
             root_path = get_root_path() + 'media/'
             if text_type:
-                filename = get_valid_filename(word + f'_{text_type}_' + accent_tld + '.mp3')
+                filename = get_valid_filename(word + f'_{text_type}_' + lang + '.mp3')
             else:
-                filename = get_valid_filename(word + '_' + accent_tld + '.mp3')
+                filename = get_valid_filename(word + '_' + lang + '.mp3')
+            print(text)
             # print(filename)
             try:
-                tts = gTTS(text, lang='en', tld=tld)
+                gender = self.ibm_tuple[0]
+                ibm_api_id = self.ibm_tuple[1]
+                ibm_endpoint_url = self.ibm_tuple[2]
+                ibm_tts = ibm_tts_authenticate(ibm_api_id, ibm_endpoint_url)
+                watson_voice = get_voice(ibm_tts, gender, watson_lang)
+                with open(root_path + filename, 'wb') as audio_file:
+                    res = ibm_tts.synthesize(text, accept='audio/mp3', voice=watson_voice['name']).get_result()
+                    audio_file.write(res.content)
             except:
-                tts = gTTS(word, lang='en', tld=tld)
-
-            if not os.path.exists(root_path + filename):
-                tts.save(root_path + filename)
+                try:
+                    tts = gTTS(text, lang='en', tld=gtts_tld)
+                except:
+                    tts = gTTS(word, lang='en', tld=gtts_tld)
+                if not os.path.exists(root_path + filename):
+                    tts.save(root_path + filename)
 
             # url = 'https://' + CambridgeSpider.allowed_domains[0] + address
             # http = urllib3.PoolManager(10, headers={'user-agent': USER_AGENT})

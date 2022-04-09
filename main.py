@@ -47,15 +47,30 @@
 # <paths  xmlns:android="http://schemas.android.com/apk/res/android">
 #     <external-path  name="external_files"  path="Android/data/org.test.vocabtoanki/files"  />
 # </paths>
+import os
+from glob import glob
 
 import ssl
 
 from src.app import MyApp
+from src.lib.helpers import get_root_path
 
 
 def main():
     ssl._create_default_https_context = ssl._create_unverified_context
     MyApp().run()
+
+    if MyApp().get_running_app().db_connection is not None:
+        MyApp().get_running_app().db_connection.close()
+    # Delete Files on exit.
+    print('Cleaning up..')
+    root_path = get_root_path()
+    mp3_files = glob(root_path + 'media/*.mp3')
+    for f in mp3_files:
+        os.remove(f)
+    if os.path.exists(root_path + 'output.apkg'):
+        os.remove(root_path + 'output.apkg')
+    print('Cleaned.')
 
 
 if __name__ == '__main__':

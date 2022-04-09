@@ -4,6 +4,7 @@
 #:import Window kivy.core.window.Window
 
 #:import get_text src.lib.strings.get_text
+#:import select_global_var_value src.db.select_global_var_value
 
 <Check@MDCheckbox>:
     group: 'accents'
@@ -12,8 +13,10 @@
 
 ScreenManager:
     id: screen_manager
-    MenuScreen:
-        id: menu_screen
+    HomeScreen:
+        id: home_screen
+    SettingsScreen:
+        id: settings_screen
     MeaningsScreen:
         id: meanings_screen
 
@@ -25,8 +28,8 @@ ScreenManager:
 #     font_style: 'H6'
 #     pos_hint: {'center_x': 0.5, 'center_y': 0.92}
 
-<MenuScreen>:
-    name: "menu_screen"
+<HomeScreen>:
+    name: "home_screen"
     MDBoxLayout:
         orientation: "vertical"
         size: root.width, root.height
@@ -34,7 +37,8 @@ ScreenManager:
             id: toolbar
             title: get_text("app_title")
             anchor_title: 'center'
-            # left_action_items: [[get_text("refresh_icon"), lambda x: app.get_running_app().restart()]]
+            left_action_items: [[get_text("settings_icon"), lambda x: app.get_running_app().change_screen("settings_screen")]]
+            right_action_items: [[get_text("github_icon"), lambda x: app.get_running_app().restart()]]
             elevation: 10
         FloatLayout:
             # MDFlatButton:
@@ -88,33 +92,6 @@ ScreenManager:
                 size_hint: (.75, .1)
                 pos_hint: {'center_x': 0.45, 'center_y': 0.58}
                 on_focus: root.tags_input_focus_mode(self.focus)
-            BoxLayout:
-                orientation: 'horizontal'
-                size_hint: (.88, .3)
-                pos_hint: {"center_x": .5, "center_y": .42}
-                Check:
-                    id: check_uk
-                    width: 48
-                    pos_hint: {"center_x": .12, "center_y": .4}
-                    on_active: root.checkbox_click(self, self.active, "co.uk")
-                MDLabel:
-                    width: 152
-                    pos_hint: {"center_x": .12, "center_y": .4}
-                    text: f'[ref=uk]{get_text("en_uk")}[/ref]'
-                    markup: True
-                    on_ref_press: root.check_it_down(*args)
-                Check:
-                    id: check_us
-                    width: 48
-                    pos_hint: {"center_x": .25, "center_y": .4}
-                    active: True
-                    on_active: root.checkbox_click(self, self.active, "com")
-                MDLabel:
-                    width: 152
-                    pos_hint: {"center_x": .25, "center_y": .4}
-                    text: f'[ref=us]{get_text("en_us")}[/ref]'
-                    markup: True
-                    on_ref_press: root.check_it_down(*args)
             MDRectangleFlatButton:
                 text: get_text("generate_flashcards")
                 font_style: 'Button'
@@ -122,6 +99,66 @@ ScreenManager:
                 on_press: root.dialog_popup(get_text("finding_meanings"), choice(get_text("funny_loading_messages")))
                 on_release: root.show_meanings()
 
+<SettingsScreen>:
+    name: "settings_screen"
+    MDBoxLayout:
+        id: settings_layout
+        orientation: "vertical"
+        size: root.width, root.height
+        MDToolbar:
+            id: toolbar
+            title: get_text("app_title")
+            anchor_title: 'center'
+            left_action_items: [[get_text("update_icon"), lambda x: app.get_running_app().change_screen("home_screen")]]
+            right_action_items: [[get_text("home_icon"), lambda x: root.save_settings()]]
+            elevation: 10
+        MDFloatLayout:
+            MDLabel:
+                text: "Pronunciation Language"
+                font_style: "Body1"
+                pos_hint: {'center_x': .53, 'center_y': .94}
+            MDIconButton:
+                icon: get_text('volume_icon')
+                pos_hint: {"center_x": .25, "center_y": .86}
+            MDDropDownItem:
+                id: lang_dropdown
+                pos_hint: {'center_x': .5, 'center_y': .86}
+                text: get_text('en_us')
+                on_release: root.open_lang_dropdown()
+            MDLabel:
+                text: "A.I. Voice (IBM Watson TTS Engine)"
+                font_style: "Body1"
+                pos_hint: {'center_x': .53, 'center_y': .72}
+            MDIconButton:
+                icon: get_text('account_icon')
+                pos_hint: {"center_x": .25, "center_y": .64}
+            MDDropDownItem:
+                id: gender_dropdown
+                pos_hint: {'center_x': .5, 'center_y': .64}
+                text: get_text('female')
+                on_release: root.open_gender_dropdown()
+            MDTextField:
+                id: ibm_api_id_input
+                padding: "10dp"
+                multiline: False
+                hint_text: get_text("paste_api_id_here")
+                size_hint: (.75, .1)
+                pos_hint: {'center_x': 0.45, 'center_y': 0.54}
+            MDIconButton:
+                icon: get_text('paste_icon')
+                pos_hint: {"center_x": .9, "center_y": .54}
+                on_release: ibm_api_id_input.text = Clipboard.paste()
+            MDTextField:
+                id: ibm_endpoint_url_input
+                padding: "10dp"
+                multiline: False
+                hint_text: get_text("paste_endpoint_url_here")
+                size_hint: (.75, .1)
+                pos_hint: {'center_x': 0.45, 'center_y': 0.42}
+            MDIconButton:
+                icon: get_text('paste_icon')
+                pos_hint: {"center_x": .9, "center_y": .42}
+                on_release: ibm_endpoint_url_input.text = Clipboard.paste()
 
 <MeaningsScreen>:
     name: "meanings_screen"
@@ -181,3 +218,32 @@ ScreenManager:
 
     IconLeftWidget:
         icon: root.icon
+
+
+# BoxLayout:
+#     orientation: 'horizontal'
+#     size_hint: (.88, .3)
+#     pos_hint: {"center_x": .5, "center_y": .42}
+#     Check:
+#         id: check_uk
+#         width: 48
+#         pos_hint: {"center_x": .12, "center_y": .4}
+#         on_active: root.checkbox_click(self, self.active, "uk")
+#     MDLabel:
+#         width: 152
+#         pos_hint: {"center_x": .12, "center_y": .4}
+#         text: f'[ref=uk]{get_text("en_uk")}[/ref]'
+#         markup: True
+#         on_ref_press: root.check_it_down(*args)
+#     Check:
+#         id: check_us
+#         width: 48
+#         pos_hint: {"center_x": .25, "center_y": .4}
+#         active: True
+#         on_active: root.checkbox_click(self, self.active, "us")
+#     MDLabel:
+#         width: 152
+#         pos_hint: {"center_x": .25, "center_y": .4}
+#         text: f'[ref=us]{get_text("en_us")}[/ref]'
+#         markup: True
+#         on_ref_press: root.check_it_down(*args)

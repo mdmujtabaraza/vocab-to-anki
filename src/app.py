@@ -1,6 +1,6 @@
 import logging
 import os
-from glob import glob
+os.environ["KIVY_NO_CONSOLELOG"] = "1"
 import subprocess
 import webbrowser
 from datetime import datetime as dt
@@ -9,10 +9,10 @@ import json
 import re
 import traceback
 
-# logging.basicConfig(
-#     level=logging.DEBUG,
-#     format="%(asctime)s:%(levelname)s:%(message)s"
-# )
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s:%(levelname)s:%(message)s"
+)
 
 import bs4
 import urllib3
@@ -55,17 +55,17 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.utils import get_color_from_hex
 
-from src.db import create_connection, create_table, create_tag, select_all_tags, select_tags_which_contains
+from src.db import create_connection, create_table, create_tag, select_all_tags, select_tags_which_contains, \
+    update_globals_var, select_global_var_value, create_globals_var
 from src.dict_scraper.spiders import cambridge
 from src.lib.helpers import get_root_path, is_platform, check_android_permissions, request_android_permissions
 from src.lib.json_to_apkg import JsonToApkg
 from src.lib.strings import get_text
 
 
-# os.environ["KIVY_NO_CONSOLELOG"] = "1"
 # require('2.1.0')
 
-CONTAINER = {'current_url': '', 'requests': [], 'tags': [], 'tld': 'com',
+CONTAINER = {'current_url': '', 'requests': [], 'tags': [],
              'm_checkboxes': [], 'm_checkboxes_selected': 0, 'm_checkboxes_total': 0}
 DICTIONARIES = {
     get_text("cambridge"): "dictionary.cambridge.org/dictionary/english/",
@@ -164,12 +164,12 @@ class MeaningsPanelContent(MDGridLayout):
             # root.ids.meanings_screen.ids.meanings_panel
             section_tuple = (section_ids, (key, value), meaning['pos'], meaning['in_dsense'])
             child_checkbox = MeaningMDCheckbox(section_tuple)
-            # menu_screen = self.root.get_screen("menu_screen")
-            menu_screen_instance = MDApp.get_running_app().menu_screen_instance
+            # home_screen = self.root.get_screen("home_screen")
+            home_screen_instance = MDApp.get_running_app().home_screen_instance
             self.add_widget(OneLineListItem(
                 text=value,
-                # on_release=lambda x, y=section_tuple: menu_instance.confirm_generation(y)
-                on_release=lambda x, y=child_checkbox: menu_screen_instance.change_checkbox_state(y)
+                # on_release=lambda x, y=section_tuple: home_instance.confirm_generation(y)
+                on_release=lambda x, y=child_checkbox: home_screen_instance.change_checkbox_state(y)
             ))
             for index in range(len(CONTAINER['m_checkboxes'])):
                 cbox = CONTAINER['m_checkboxes'][index]
@@ -234,75 +234,24 @@ class IconListItem(OneLineIconListItem):
     icon = StringProperty()
 
 
-class MenuScreen(MDScreen):
+class HomeScreen(MDScreen):
     def __init__(self, **kwargs):
         # call grid layout constructor
-        super(MenuScreen, self).__init__(**kwargs)
+        super(HomeScreen, self).__init__(**kwargs)
         self.dictionary_menu = None
         self.tags_menu = None
         self.dialog = None
         self.timestamp = dt.now().strftime("%Y%m%d%H%M%S")
 
-        # set columns
-        # self.cols = 1
-        # self.row_force_default = True
-        # self.row_default_height = 120
-        # self.col_force_default = True
-        # self.col_default_width = 100
-
-        # create a second GridLayout
-        # self.top_grid = MDGridLayout(
-        #     row_force_default=True,
-        #     row_default_height=40,
-        #     col_force_default=True,
-        #     col_default_width=100
-        # )
-        # self.top_grid.cols = 2
-
-        # add widgets
-        # icon_label = MDIcon(icon='magnify', halign='center')
-        # self.top_grid.add_widget(icon_label)
-        # self.add_widget(MDLabel(  # .top_grid.
-        #     text="",
-        #     halign='center',
-        #     theme_text_color='Primary',
-        #     font_style='Body1',
-        #     pos_hint={'center_x': 0.5, 'center_y': 0.7}
-        #     # size_hint_x=None,
-        #     # size_hint_y=None,
-        #     # height=50,
-        #     # width=200
-        # ))
-        # add input box
-        # self.word = MDTextField(
-        #     multiline=False,
-        #     pos_hint={'center_x': 0.5, 'center_y': 0.5},
-        #     size_hint_x=None, width=300
-        # )
-        # self.word_url = Builder.load_string(word_url_helper)
-        # self.add_widget(self.word_url)  # .top_grid.
-
-        # self.drop_down = Builder.load_string(dropdown_helper)
-        # self.add_widget(self.drop_down)
-
-        # add the new grid to our app
-        # self.add_widget(self.top_grid)
-
-        # create a submit button
-        # self.submit = MDRectangleFlatButton(
-        #     text='Submit',
-        #     pos_hint={'center_x': 0.5, 'center_y': 0.4},
-        #     on_release=self.show_meanings
-        # )
-        # bind the button
-        # self.submit.bind(on_press=self.press)
-        # self.add_widget(self.submit)
+    def on_enter(self, *args):
+        # print("Entering..")
+        pass
 
     # def change_screen(self):
     #     if self.manager.current == "meanings_screen":
     #         self.manager.transition.direction = 'right'
     #         self.manager.transition.duration = 0.5
-    #         self.manager.current = "menu_screen"
+    #         self.manager.current = "home_screen"
     #     else:
     #         # sm.current = 'meanings_screen'
     #         self.manager.transition.direction = 'left'
@@ -450,19 +399,20 @@ class MenuScreen(MDScreen):
             )
         self.dialog.open()
 
-    def checkbox_click(self, instance, value, tld):
-        if value is True:
-            CONTAINER['tld'] = tld
-
-    def check_it_down(self, label_obj, lang):
-        if lang == "us":
-            self.ids.check_us.active = True
-            CONTAINER['tld'] = 'com'
-        elif lang == 'uk':
-            self.ids.check_uk.active = True
-            CONTAINER['tld'] = 'co.uk'
-        else:
-            CONTAINER['tld'] = 'com'
+    # def checkbox_click(self, instance, value, lang):
+    #     if value is True:
+    #         if not MDApp.get_running_app().create_tables():
+    #             return False
+    #         update_globals_var(MDApp.get_running_app().db_connection, ('lang', lang))
+    #
+    # def check_it_down(self, label_obj, lang):
+    #     if not MDApp.get_running_app().create_tables():
+    #         return False
+    #     update_globals_var(MDApp.get_running_app().db_connection, ('lang', lang))
+    #     if lang == "us":
+    #         self.ids.check_us.active = True
+    #     elif lang == 'uk':
+    #         self.ids.check_uk.active = True
 
     def generate_flashcards(self, btn):
         selected_checkboxes = []
@@ -478,9 +428,14 @@ class MenuScreen(MDScreen):
         notes = []
         jta = JsonToApkg()
         soup = get_webpage(CONTAINER['current_url'])
+        lang = select_global_var_value(MDApp.get_running_app().db_connection, 'lang')
+        gender = select_global_var_value(MDApp.get_running_app().db_connection, 'gender')
+        ibm_api_id = select_global_var_value(MDApp.get_running_app().db_connection, 'ibm_api_id')
+        ibm_endpoint_url = select_global_var_value(MDApp.get_running_app().db_connection, 'ibm_endpoint_url')
+        ibm_tuple = (gender[0], ibm_api_id[0], ibm_endpoint_url[0])
         for checkbox in selected_checkboxes:
             extracted_dictionary = cambridge.CambridgeSpider(
-                soup, CONTAINER['tld'], checkbox.section_tuple
+                soup, lang[0], checkbox.section_tuple, ibm_tuple
             ).parse()
             notes.append(jta.generate_note(extracted_dictionary, CONTAINER['tags']))
         # ToDo: Add a database row of tag if not exists
@@ -504,7 +459,7 @@ class MenuScreen(MDScreen):
     def confirm_generation(self):
         # meaning = section_tuple[1]
         # meaning_text = meaning[1] if type(meaning) is tuple else meaning
-        # menu_screen = self.root.get_screen("menu_screen")
+        # home_screen = self.root.get_screen("home_screen")
         confirm_button = MDRaisedButton(
             text="CONFIRM", on_release=lambda x: self.generate_flashcards(x)
         )
@@ -554,11 +509,9 @@ class MenuScreen(MDScreen):
                 dict_name = name
                 break
         if dict_name:
-            if not check_android_permissions():
+            if not MDApp.get_running_app().create_tables():
                 self.dialog.dismiss()
-                MDApp.get_running_app().soft_restart()
                 return False
-            MDApp.get_running_app().create_tables()
             # d = runner.crawl(
             #     CambridgeSpider,
             #     url=word_url,
@@ -627,7 +580,7 @@ class MenuScreen(MDScreen):
 
                 count += 1
             self.dialog.dismiss()
-            MDApp.get_running_app().change_screen()
+            MDApp.get_running_app().change_screen("meanings_screen")
         else:
             self.toast(get_text("invalid_url"))
             self.dialog.dismiss()
@@ -640,6 +593,92 @@ class MenuScreen(MDScreen):
         # clear the input boxes
         # self.ids.word_input.text = ""
         return True
+
+
+class SettingsScreen(MDScreen):
+    def __init__(self, **kwargs):
+        super(SettingsScreen, self).__init__(**kwargs)
+        self.lang_menu = None
+        self.gender_menu = None
+
+    def save_settings(self):
+        ibm_api_id = self.ids.ibm_api_id_input.text
+        ibm_endpoint_url = self.ids.ibm_endpoint_url_input.text
+        if not MDApp.get_running_app().create_tables():
+            return False
+        update_globals_var(MDApp.get_running_app().db_connection, ('ibm_api_id', ibm_api_id))
+        update_globals_var(MDApp.get_running_app().db_connection, ('ibm_endpoint_url', ibm_endpoint_url))
+        MDApp.get_running_app().change_screen("home_screen")
+
+    def open_lang_dropdown(self):
+        if self.lang_menu is not None:
+            self.lang_menu.dismiss()
+
+        menu_items = [
+            {
+                "viewclass": "OneLineListItem",
+                "text": get_text("en_us"),
+                "on_release": lambda x=get_text("en_us"): self.set_lang_item(x)
+            },
+            {
+                "viewclass": "OneLineListItem",
+                "text": get_text("en_uk"),
+                "on_release": lambda x=get_text("en_uk"): self.set_lang_item(x)
+            }
+        ]
+        self.lang_menu = MDDropdownMenu(
+            caller=self.ids.lang_dropdown,
+            items=menu_items,
+            position='center',
+            width_mult=5,
+        )
+        self.lang_menu.open()
+
+    def open_gender_dropdown(self):
+        if self.gender_menu is not None:
+            self.gender_menu.dismiss()
+
+        menu_items = [
+            {
+                "viewclass": "OneLineListItem",
+                "text": get_text("female"),
+                "on_release": lambda x=get_text("female"): self.set_gender_item(x)
+            },
+            {
+                "viewclass": "OneLineListItem",
+                "text": get_text("male"),
+                "on_release": lambda x=get_text("male"): self.set_gender_item(x)
+            }
+        ]
+        self.gender_menu = MDDropdownMenu(
+            caller=self.ids.gender_dropdown,
+            items=menu_items,
+            position='center',
+            width_mult=5,
+        )
+        self.gender_menu.open()
+
+    def set_lang_item(self, text_item):
+        if not MDApp.get_running_app().create_tables():
+            return False
+        if text_item == get_text('en_uk'):
+            lang = 'uk'
+        else:  # text_item == get_text('en_us')
+            lang = 'us'
+        update_globals_var(MDApp.get_running_app().db_connection, ('lang', lang))
+        self.ids.lang_dropdown.set_item(text_item)
+        self.lang_menu.dismiss()
+
+    def set_gender_item(self, text_item):
+        if not MDApp.get_running_app().create_tables():
+            return False
+        if text_item == get_text('female'):
+            gender = 'female'
+        else:  # text_item == get_text('male')
+            gender = 'male'
+        update_globals_var(MDApp.get_running_app().db_connection, ('gender', gender))
+        self.ids.gender_dropdown.set_item(text_item)
+        self.gender_menu.dismiss()
 
 
 class MeaningsScreen(MDScreen):
@@ -660,10 +699,10 @@ class MeaningsScreen(MDScreen):
                 count += 1
                 checkbox.active = True
         CONTAINER['m_checkboxes_selected'] = count
-        menu_screen_instance = MDApp.get_running_app().menu_screen_instance
+        home_screen_instance = MDApp.get_running_app().home_screen_instance
         # md_bg_color = self.theme_cls.primary_color
         # left_action_items = [["arrow-left", lambda x: self.get_running_app().soft_restart()]]
-        right_action_items = [[get_text("export_icon"), lambda x: menu_screen_instance.confirm_generation()],
+        right_action_items = [[get_text("export_icon"), lambda x: home_screen_instance.confirm_generation()],
                               [get_text("select_none_icon"), lambda x: self.deselect_all()]]
         self.ids.toolbar.right_action_items = right_action_items
         # meanings_screen.ids.toolbar.title = get_text("app_title")
@@ -681,15 +720,15 @@ class MeaningsScreen(MDScreen):
         self.ids.toolbar.right_action_items = right_action_items
 
     # def change_screen(self):
-    #     if self.manager.current == "menu_screen":
+    #     if self.manager.current == "home_screen":
     #         self.manager.transition.direction = 'left'
     #         self.manager.transition.duration = 0.5  # 0.5 second
     #         self.manager.current = "meanings_screen"
     #     else:
-    #         # sm.current = 'menu_screen'
+    #         # sm.current = 'home_screen'
     #         self.manager.transition.direction = 'right'
     #         self.manager.transition.duration = 0.5  # 0.5 second
-    #         self.manager.current = 'menu_screen'
+    #         self.manager.current = 'home_screen'
 
     # def on_start(self):
     #     # for i in range(20):
@@ -713,7 +752,8 @@ class MeaningsScreen(MDScreen):
 
 class MyApp(MDApp):
     # overlay_color = get_color_from_hex("#6042e4")
-    menu_screen_instance = MenuScreen()
+    home_screen_instance = HomeScreen()
+    settings_screen_instance = SettingsScreen()
     meanings_screen_instance = MeaningsScreen()
 
     def __init__(self, **kwargs):
@@ -724,7 +764,7 @@ class MyApp(MDApp):
     def build(self):
         Window.bind(on_keyboard=self._on_keyboard_handler)
         Window.bind(on_request_close=self.on_request_close)
-        # sm.add_widget(MenuScreen(name='menu_screen'))
+        # sm.add_widget(HomeScreen(name='home_screen'))
         # sm.add_widget(MeaningsScreen(name='meanings_screen'))
         self.title = get_text("app_title")
         self.theme_cls.primary_palette = "Blue"
@@ -737,7 +777,9 @@ class MyApp(MDApp):
     def on_start(self):
         print('Starting...')
         print("Size:", Window.size)
-        request_android_permissions()
+        # request_android_permissions()
+        if check_android_permissions():
+            self.create_tables()
 
     def restart(self):
         self.root.clear_widgets()
@@ -745,22 +787,25 @@ class MyApp(MDApp):
         global CONTAINER
         CONTAINER['current_url'] = ''
         CONTAINER['tags'] = []
-        CONTAINER['tld'] = 'com'
         CONTAINER['m_checkboxes'] = []
         CONTAINER['m_checkboxes_selected'] = 0
         CONTAINER['m_checkboxes_total'] = 0
         return MyApp().run()
 
-    def change_screen(self):
-        if self.root.current == "menu_screen":
+    def change_screen(self, screen_name):
+        current_screen = self.root.current
+        if screen_name == "meanings_screen":
             self.root.transition.direction = 'left'
-            self.root.transition.duration = 0.5  # 0.5 second
-            self.root.current = "meanings_screen"
-        else:
-            # sm.current = 'menu_screen'
+        elif screen_name == "home_screen":
+            # sm.current = 'home_screen'
+            if current_screen == 'settings_screen':
+                self.root.transition.direction = 'left'
+            else:
+                self.root.transition.direction = 'right'
+        elif screen_name == "settings_screen":
             self.root.transition.direction = 'right'
-            self.root.transition.duration = 0.5  # 0.5 second
-            self.root.current = 'menu_screen'
+        self.root.transition.duration = 0.5  # 0.5 second
+        self.root.current = screen_name
 
     def soft_restart(self):
         print('Restarting..')
@@ -780,23 +825,23 @@ class MyApp(MDApp):
             # meanings_screen.ids.toolbar.right_action_items = \
             #     [[get_text("select_all_icon"), lambda x: self.get_running_app().meanings_screen_instance.select_all()]]
         meanings_screen.ids.meanings_selection_list.clear_widgets()
-        self.root.transition.direction = 'right'
-        self.root.transition.duration = 0.5  # 0.5 second
-        self.root.current = 'menu_screen'
-        # self.change_screen()
+        self.change_screen('home_screen')
 
     def create_tables(self):
+        if not check_android_permissions():
+            self.soft_restart()
+            return False
         if self.db_connection is not None:
             return True
         db_path = f'{get_root_path()}data.db'
         self.db_connection = create_connection(db_path)
         # https://stackoverflow.com/a/44951682
         sql_create_tags_table = """
-                                CREATE TABLE IF NOT EXISTS tags(
-                                tag TEXT NOT NULL COLLATE NOCASE,
-                                PRIMARY KEY(tag)
-                                )
-                                """
+        CREATE TABLE IF NOT EXISTS tags(
+        tag TEXT NOT NULL COLLATE NOCASE,
+        PRIMARY KEY(tag)
+        )
+        """
         create_table(self.db_connection, sql_create_tags_table)
 
         # https://www.designcise.com/web/tutorial/how-to-do-case-insensitive-comparisons-in-sqlite
@@ -807,9 +852,40 @@ class MyApp(MDApp):
         # EXPLAIN QUERY PLAN SELECT * FROM tags WHERE tag = 'some-tag';
         # output: SEARCH TABLE tags USING INDEX idx_nocase_tags (tag=?)
         sql_create_tags_index = """
-                                CREATE INDEX IF NOT EXISTS idx_nocase_tags ON tags (tag COLLATE NOCASE)
-                                """
+        CREATE INDEX IF NOT EXISTS idx_nocase_tags ON tags (tag COLLATE NOCASE)
+        """
         create_table(self.db_connection, sql_create_tags_index)
+
+        sql_create_globals_table = """
+        CREATE TABLE IF NOT EXISTS globals(
+        var_key TEXT NOT NULL,
+        var_value TEXT NOT NULL,
+        PRIMARY KEY(var_key)
+        )
+        """
+        create_table(self.db_connection, sql_create_globals_table)
+
+        create_globals_var(self.db_connection, ('lang', 'us'))
+        create_globals_var(self.db_connection, ('gender', 'female'))
+        create_globals_var(self.db_connection, ('ibm_api_id', ''))
+        create_globals_var(self.db_connection, ('ibm_endpoint_url', ''))
+        lang_value = select_global_var_value(self.db_connection, 'lang')[0]
+        gender_value = select_global_var_value(self.db_connection, 'gender')[0]
+        ibm_api_id = select_global_var_value(self.db_connection, 'ibm_api_id')[0]
+        ibm_endpoint_url = select_global_var_value(self.db_connection, 'ibm_endpoint_url')[0]
+        settings_screen = self.root.get_screen("settings_screen")
+        if lang_value == 'uk':
+            settings_screen.ids.lang_dropdown.set_item(get_text("en_uk"))
+        else:  # check_value == 'us':
+            settings_screen.ids.lang_dropdown.set_item(get_text("en_us"))
+        if gender_value == 'female':
+            settings_screen.ids.gender_dropdown.set_item(get_text("female"))
+        else:
+            settings_screen.ids.gender_dropdown.set_item(get_text("male"))
+        if ibm_api_id:
+            settings_screen.ids.ibm_api_id_input.text = ibm_api_id
+        if ibm_endpoint_url:
+            settings_screen.ids.ibm_endpoint_url_input.text = ibm_endpoint_url
         return True
 
     # def callback(self, button):
@@ -839,12 +915,12 @@ class MyApp(MDApp):
 
     def _on_keyboard_handler(self, instance, key, *args):
         # print(key, chr(key))
-        menu_screen = self.root.get_screen("menu_screen")
+        home_screen = self.root.get_screen("home_screen")
 
-        if menu_screen.ids.tags_input.focus:
-            menu_screen_instance = self.get_running_app().menu_screen_instance
-            if menu_screen_instance.tags_menu:
-                menu_screen_instance.tags_menu.dismiss()
+        if home_screen.ids.tags_input.focus:
+            home_screen_instance = self.get_running_app().home_screen_instance
+            if home_screen_instance.tags_menu:
+                home_screen_instance.tags_menu.dismiss()
             if key == 8:
                 self.open_tags_dropdown()
             else:
@@ -857,29 +933,16 @@ class MyApp(MDApp):
 
     def on_request_close(self, *args):
         print('Exiting..')
-        if self.db_connection is not None:
-            self.db_connection.close()
-        # Delete Files on exit.
-        print('Cleaning up..')
-        root_path = get_root_path()
-        mp3_files = glob(root_path + 'media/*.mp3')
-        for f in mp3_files:
-            os.remove(f)
-        os.remove(root_path + 'output.apkg')
-        print('Cleaned.')
-        exit()
 
     def open_tags_dropdown(self, key=None):
-        if not check_android_permissions():
-            self.soft_restart()
+        if not self.create_tables():
             return False
-        self.create_tables()
-        menu_screen = self.root.get_screen("menu_screen")
-        menu_screen_instance = self.get_running_app().menu_screen_instance
+        home_screen = self.root.get_screen("home_screen")
+        home_screen_instance = self.get_running_app().home_screen_instance
         menu_items = []
         try:
-            typed_tag = menu_screen.ids.tags_input.text.split()[-1] if key is None \
-                else menu_screen.ids.tags_input.text.split()[-1] + key
+            typed_tag = home_screen.ids.tags_input.text.split()[-1] if key is None \
+                else home_screen.ids.tags_input.text.split()[-1] + key
         except IndexError:
             typed_tag = ''
         # print("typed_tag:", typed_tag)
@@ -896,20 +959,20 @@ class MyApp(MDApp):
                 "on_release": lambda x=row[0]: self.set_tag(x),
             }
             menu_items.append(some_dict)
-        menu_screen_instance.tags_menu = MDDropdownMenu(
-            caller=menu_screen.ids.tags_input,
+        home_screen_instance.tags_menu = MDDropdownMenu(
+            caller=home_screen.ids.tags_input,
             items=menu_items,
             position='auto',
             ver_growth='up' if is_platform('android') else 'down',
             width_mult=4,
         )
-        menu_screen_instance.tags_menu.open()
+        home_screen_instance.tags_menu.open()
 
     def set_tag(self, tag):
-        menu_screen = self.root.get_screen("menu_screen")
-        menu_screen_instance = self.get_running_app().menu_screen_instance
+        home_screen = self.root.get_screen("home_screen")
+        home_screen_instance = self.get_running_app().home_screen_instance
 
-        tags = menu_screen.ids.tags_input.text
+        tags = home_screen.ids.tags_input.text
         if ' ' in tags:
             tags_list = tags.split()
             tags_list[-1] = tag
@@ -917,14 +980,14 @@ class MyApp(MDApp):
         else:
             tags = tag
 
-        menu_screen.ids.tags_input.text = tags + ' '
-        menu_screen_instance.tags_menu.dismiss()
-        menu_screen.ids.tags_input.focus = True
+        home_screen.ids.tags_input.text = tags + ' '
+        home_screen_instance.tags_menu.dismiss()
+        home_screen.ids.tags_input.focus = True
 
     def on_selected(self):
         meanings_screen = self.root.get_screen("meanings_screen")
         export_button = \
-            [get_text("export_icon"), lambda x: self.get_running_app().menu_screen_instance.confirm_generation()]
+            [get_text("export_icon"), lambda x: self.get_running_app().home_screen_instance.confirm_generation()]
         if CONTAINER['m_checkboxes_selected'] == 0:
             meanings_screen.ids.toolbar.title = get_text("app_title")
             meanings_screen.ids.toolbar.anchor_title = 'center'

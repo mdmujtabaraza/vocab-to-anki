@@ -10,11 +10,15 @@
   "invalid_url": "Invalid URL. Please try again",
 
   "paste_here": "Paste word/expression url here",
+  "paste_api_id_here": "Paste API ID here",
+  "paste_endpoint_url_here": "Paste Endpoint URL here",
   "chose_accent": "Select Pronunciation Accent",
   "tag_info": "Enter tags separated by space",
   "sample_tags": "IELTS Phrasal_Verb Intermediate",
-  "en_uk": "English (United Kingdom)",
-  "en_us": "English (United States)",
+  "en_uk": "English (UK)",
+  "en_us": "English (US)",
+  "male": "Male",
+  "female": "Female",
   "generate_flashcards": "Generate Anki Flashcards",
   "finding_meanings": "Finding meanings...",
 
@@ -32,8 +36,16 @@
   "paste_icon": "clipboard-file",
   "export_icon": "file-export",
   "tag_icon": "tag",
+  "settings_icon": "cog",
+  "github_icon": "github",
+  "update_icon": "update",
+  "home_icon": "home",
+  "volume_icon": "volume-high",
+  "account_icon": "account",
+
 
   "browse_button": "Browse",
+  "save_button": "Save",
 
   "funny_loading_messages":
   [
