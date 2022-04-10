@@ -1,5 +1,6 @@
 import os
 import random
+from time import time
 from datetime import datetime as dt
 
 import genanki
@@ -88,11 +89,12 @@ class JsonToApkg:
     def __init__(self):
         pass
 
-    def generate_apkg(self, notes) -> str:
+    def generate_apkg(self, deck_tuple, notes) -> str:
         # print('Before my_deck')
+
         my_deck = genanki.Deck(
-            1646145285163,  # todo: change id and name
-            f"Eng_{'-'.join(get_text('app_title').split())}_1646145285163")
+            *deck_tuple
+        )
 
         media_filenames = []
         for note in notes:

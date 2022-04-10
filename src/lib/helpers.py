@@ -4,6 +4,8 @@ import re
 from bs4.element import ResultSet, Tag
 from kivy import platform
 
+from src.lib.strings import get_text
+
 
 def is_platform(os_name) -> bool:
     return os_name == platform
@@ -19,6 +21,16 @@ def get_root_path() -> str:
         path = 'files/'
     if not os.path.exists(path + 'media/'):
         os.makedirs(path + 'media/')
+    return path
+
+
+def get_db_path() -> str:
+    if is_platform('android'):  # if 'ANDROID_STORAGE' in os.environ:
+        path = f'/storage/emulated/0/Android/{get_text("app_title")}/'
+    else:  # platform == 'win'
+        path = 'files/'
+    if not os.path.exists(path):
+        os.makedirs(path)
     return path
 
 

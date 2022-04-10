@@ -50,15 +50,15 @@ ScreenManager:
                 id: dict_dropdown
                 text: get_text("browse_button")
                 font_style: 'Button'
-                pos_hint: {"center_x": 0.5, 'center_y': 0.89}
+                pos_hint: {"center_x": 0.5, 'center_y': 0.9}
                 on_release: root.open_dictionary_dropdown()
             MDTextField:
                 id: word_input
-                text: get_text("sample_url")
+                # text: get_text("sample_url")[4:]
                 padding: "10dp"
                 multiline: False
                 hint_text: get_text("paste_here")
-                helper_text: f"ex: {get_text('sample_url')}"
+                helper_text: get_text('sample_url')
                 helper_text_mode: "on_focus"
                 size_hint: (.75, .1)
                 pos_hint: {'center_x': 0.45, 'center_y': 0.72}
@@ -81,16 +81,25 @@ ScreenManager:
             #     pos_hint: {'center_x': 0.39, 'center_y': 0.5}
             #     size_hint: (None, .1)
             MDTextField:
+                id: deck_input
+                padding: "10dp"
+                multiline: False
+                hint_text: get_text("deck_info")
+                helper_text: get_text('sample_decks')
+                helper_text_mode: "on_focus"
+                size_hint: (.75, .1)
+                pos_hint: {'center_x': 0.45, 'center_y': 0.56}
+                on_focus: root.deck_input_focus_mode(self.focus)
+            MDTextField:
                 id: tags_input
                 padding: "10dp"
                 multiline: False
                 hint_text: get_text("tag_info")
-                helper_text: f"ex: {get_text('sample_tags')}"
+                helper_text: get_text('sample_tags')
                 helper_text_mode: "on_focus"
-                icon_left: get_text('tag_icon')
                 # icon_left_color: 'red'
                 size_hint: (.75, .1)
-                pos_hint: {'center_x': 0.45, 'center_y': 0.58}
+                pos_hint: {'center_x': 0.45, 'center_y': 0.4}
                 on_focus: root.tags_input_focus_mode(self.focus)
             MDRectangleFlatButton:
                 text: get_text("generate_flashcards")

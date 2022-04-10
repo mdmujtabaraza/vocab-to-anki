@@ -4,7 +4,7 @@ os.environ["KIVY_NO_CONSOLELOG"] = "1"
 import subprocess
 import webbrowser
 from datetime import datetime as dt
-import time
+from time import time
 import json
 import re
 import traceback
@@ -56,16 +56,18 @@ from kivy.uix.button import Button
 from kivy.utils import get_color_from_hex
 
 from src.db import create_connection, create_table, create_tag, select_all_tags, select_tags_which_contains, \
-    update_globals_var, select_global_var_value, create_globals_var
+    update_globals_var, select_global_var_value, create_globals_var, select_all_decks, select_decks_which_contains, \
+    create_deck, select_deck
 from src.dict_scraper.spiders import cambridge
-from src.lib.helpers import get_root_path, is_platform, check_android_permissions, request_android_permissions
+from src.lib.helpers import get_root_path, is_platform, check_android_permissions, request_android_permissions, \
+    get_db_path
 from src.lib.json_to_apkg import JsonToApkg
 from src.lib.strings import get_text
 
 
 # require('2.1.0')
 
-CONTAINER = {'current_url': '', 'requests': [], 'tags': [],
+CONTAINER = {'current_url': '', 'requests': [], 'tags': [], 'deck_tuple': (),
              'm_checkboxes': [], 'm_checkboxes_selected': 0, 'm_checkboxes_total': 0}
 DICTIONARIES = {
     get_text("cambridge"): "dictionary.cambridge.org/dictionary/english/",
@@ -240,6 +242,7 @@ class HomeScreen(MDScreen):
         super(HomeScreen, self).__init__(**kwargs)
         self.dictionary_menu = None
         self.tags_menu = None
+        self.decks_menu = None
         self.dialog = None
         self.timestamp = dt.now().strftime("%Y%m%d%H%M%S")
 
@@ -264,6 +267,13 @@ class HomeScreen(MDScreen):
         else:
             if self.tags_menu:
                 self.tags_menu.dismiss()
+
+    def deck_input_focus_mode(self, is_focussed):
+        if is_focussed:
+            MDApp.get_running_app().open_deck_dropdown()
+        else:
+            if self.decks_menu:
+                self.decks_menu.dismiss()
 
     def open_dictionary_dropdown(self):
         if self.dictionary_menu is not None:
@@ -447,7 +457,10 @@ class HomeScreen(MDScreen):
                 print(e)
                 print(traceback.format_exc())
             # print("inserted")
-        apkg_filename = jta.generate_apkg(notes)
+
+        create_deck(MDApp.get_running_app().db_connection, CONTAINER['deck_tuple'])
+        rows = select_deck(MDApp.get_running_app().db_connection, CONTAINER['deck_tuple'][1])
+        apkg_filename = jta.generate_apkg(rows[0], notes)
 
         MDApp.get_running_app().soft_restart()
         self.dialog_popup(
@@ -482,10 +495,17 @@ class HomeScreen(MDScreen):
 
     def show_meanings(self):
         word_url = self.ids.word_input.text.split('#')[0].split('?')[0]
+        deck_name = ' '.join(self.ids.deck_input.text.split())
         CONTAINER['tags'] = self.ids.tags_input.text.split()
+        random_deck_id = ''.join(str(time()).split('.'))[:13]
+        CONTAINER['deck_tuple'] = (random_deck_id, deck_name)
         dict_name = None
         if not validators.url(word_url):
             self.toast(get_text("url_not_found"))
+            self.dialog.dismiss()
+            return False
+        if not deck_name:
+            self.toast(get_text("select_deck"))
             self.dialog.dismiss()
             return False
         # word_url = self.word_url.text
@@ -785,8 +805,8 @@ class MyApp(MDApp):
         self.root.clear_widgets()
         self.stop()
         global CONTAINER
-        CONTAINER['current_url'] = ''
         CONTAINER['tags'] = []
+        CONTAINER['deck_tuple'] = ()
         CONTAINER['m_checkboxes'] = []
         CONTAINER['m_checkboxes_selected'] = 0
         CONTAINER['m_checkboxes_total'] = 0
@@ -810,8 +830,8 @@ class MyApp(MDApp):
     def soft_restart(self):
         print('Restarting..')
         global CONTAINER
-        CONTAINER['current_url'] = ''
         CONTAINER['tags'] = []
+        CONTAINER['deck_tuple'] = ()
         CONTAINER['m_checkboxes'] = []
         CONTAINER['m_checkboxes_selected'] = 0
         CONTAINER['m_checkboxes_total'] = 0
@@ -833,7 +853,7 @@ class MyApp(MDApp):
             return False
         if self.db_connection is not None:
             return True
-        db_path = f'{get_root_path()}data.db'
+        db_path = f'{get_db_path()}data.db'
         self.db_connection = create_connection(db_path)
         # https://stackoverflow.com/a/44951682
         sql_create_tags_table = """
@@ -855,6 +875,25 @@ class MyApp(MDApp):
         CREATE INDEX IF NOT EXISTS idx_nocase_tags ON tags (tag COLLATE NOCASE)
         """
         create_table(self.db_connection, sql_create_tags_index)
+
+        sql_create_decks_table = """
+        CREATE TABLE IF NOT EXISTS decks(
+        deck TEXT NOT NULL COLLATE NOCASE,
+        deck_id INTEGER NOT NULL,
+        PRIMARY KEY(deck)
+        )
+        """
+        create_table(self.db_connection, sql_create_decks_table)
+        sql_create_deck_index = """
+        CREATE INDEX IF NOT EXISTS idx_nocase_decks ON decks (deck COLLATE NOCASE)
+        """
+        create_table(self.db_connection, sql_create_deck_index)
+
+        # random_deck_id = ''.join(str(time()).split('.'))[:13]
+        # deck_name = f"Eng_{'-'.join(get_text('app_title').split())}"
+        # create_deck(self.db_connection, (random_deck_id, deck_name))
+        # home_screen = self.root.get_screen("home_screen")
+        # home_screen.ids.deck_input.text = deck_name
 
         sql_create_globals_table = """
         CREATE TABLE IF NOT EXISTS globals(
@@ -917,15 +956,19 @@ class MyApp(MDApp):
         # print(key, chr(key))
         home_screen = self.root.get_screen("home_screen")
 
+        if home_screen.ids.deck_input.focus:
+            home_screen_instance = self.get_running_app().home_screen_instance
+            if home_screen_instance.decks_menu:
+                home_screen_instance.decks_menu.dismiss()
+            print(home_screen.ids.deck_input.text)
+            self.open_deck_dropdown()
+
         if home_screen.ids.tags_input.focus:
             home_screen_instance = self.get_running_app().home_screen_instance
             if home_screen_instance.tags_menu:
                 home_screen_instance.tags_menu.dismiss()
-            if key == 8:
-                self.open_tags_dropdown()
-            else:
-                self.open_tags_dropdown(chr(key))
-                # CONTAINER['tags_input_text'] = CONTAINER['tags_input_text'][:-1]
+            self.open_tags_dropdown()
+            # CONTAINER['tags_input_text'] = CONTAINER['tags_input_text'][:-1]
             # elif key == 32:
             #     CONTAINER['tags_input_text'] = ''
             # else:
@@ -934,15 +977,14 @@ class MyApp(MDApp):
     def on_request_close(self, *args):
         print('Exiting..')
 
-    def open_tags_dropdown(self, key=None):
+    def open_tags_dropdown(self):
         if not self.create_tables():
             return False
         home_screen = self.root.get_screen("home_screen")
         home_screen_instance = self.get_running_app().home_screen_instance
         menu_items = []
         try:
-            typed_tag = home_screen.ids.tags_input.text.split()[-1] if key is None \
-                else home_screen.ids.tags_input.text.split()[-1] + key
+            typed_tag = home_screen.ids.tags_input.text.split()[-1]
         except IndexError:
             typed_tag = ''
         # print("typed_tag:", typed_tag)
@@ -968,6 +1010,36 @@ class MyApp(MDApp):
         )
         home_screen_instance.tags_menu.open()
 
+    def open_deck_dropdown(self):
+        if not self.create_tables():
+            return False
+        home_screen = self.root.get_screen("home_screen")
+        home_screen_instance = self.get_running_app().home_screen_instance
+        menu_items = []
+        typed_deck = home_screen.ids.deck_input.text
+        print("typed_deck:", typed_deck)
+        if not typed_deck:
+            rows = select_all_decks(self.db_connection)
+        else:
+            rows = select_decks_which_contains(self.db_connection, typed_deck)
+        print(rows)
+        for row in rows:
+            some_dict = {
+                "viewclass": "OneLineListItem",
+                "height": dp(56),
+                "text": row[1],
+                "on_release": lambda x=row[1]: self.set_deck(x),
+            }
+            menu_items.append(some_dict)
+        home_screen_instance.decks_menu = MDDropdownMenu(
+            caller=home_screen.ids.deck_input,
+            items=menu_items,
+            position='auto',
+            ver_growth='up' if is_platform('android') else 'down',
+            width_mult=4,
+        )
+        home_screen_instance.decks_menu.open()
+
     def set_tag(self, tag):
         home_screen = self.root.get_screen("home_screen")
         home_screen_instance = self.get_running_app().home_screen_instance
@@ -982,7 +1054,17 @@ class MyApp(MDApp):
 
         home_screen.ids.tags_input.text = tags + ' '
         home_screen_instance.tags_menu.dismiss()
+        # todo: what about focus
         home_screen.ids.tags_input.focus = True
+
+    def set_deck(self, deck):
+        home_screen = self.root.get_screen("home_screen")
+        home_screen_instance = self.get_running_app().home_screen_instance
+
+        home_screen.ids.deck_input.text = deck
+        home_screen_instance.decks_menu.dismiss()
+        # todo: what about focus
+        home_screen.ids.deck_input.focus = True
 
     def on_selected(self):
         meanings_screen = self.root.get_screen("meanings_screen")

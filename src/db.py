@@ -45,6 +45,22 @@ def create_tag(conn, tag):
     return cur.lastrowid
 
 
+def create_deck(conn, deck_tuple):
+    """
+    Create a new deck
+    :param conn:
+    :param deck_tuple:
+    :return:
+    """
+
+    sql = ''' INSERT OR IGNORE INTO decks (deck_id, deck) VALUES (?, ?) '''
+    cur = conn.cursor()
+    cur.execute(sql, deck_tuple)
+    conn.commit()
+
+    return cur.lastrowid
+
+
 def update_globals_var(conn, var_tuple):
     """
     Update a var_value in globals
@@ -94,6 +110,23 @@ def select_all_tags(conn):
     return rows
 
 
+def select_all_decks(conn):
+    """
+    Query all rows in the decks table
+    :param conn: the Connection object
+    :return:
+    """
+    cur = conn.cursor()
+    cur.execute("SELECT deck_id, deck FROM decks ORDER BY deck DESC LIMIT 5")
+
+    rows = cur.fetchall()
+
+    # for row in rows:
+    #     print(row)
+
+    return rows
+
+
 def select_tags_which_contains(conn, tag):
     """
     Query tags by tag
@@ -103,6 +136,42 @@ def select_tags_which_contains(conn, tag):
     """
     cur = conn.cursor()
     cur.execute(f"SELECT tag FROM tags WHERE tag LIKE '%{tag}%' ORDER BY tag DESC LIMIT 5")
+
+    rows = cur.fetchall()
+
+    # for row in rows:
+    #     print(row)
+
+    return rows
+
+
+def select_decks_which_contains(conn, deck):
+    """
+    Query decks by deck
+    :param conn: the Connection object
+    :param deck:
+    :return:
+    """
+    cur = conn.cursor()
+    cur.execute(f"SELECT deck_id, deck FROM decks WHERE deck LIKE '%{deck}%' ORDER BY deck DESC LIMIT 5")
+
+    rows = cur.fetchall()
+
+    # for row in rows:
+    #     print(row)
+
+    return rows
+
+
+def select_deck(conn, deck):
+    """
+    Query decks by deck
+    :param conn: the Connection object
+    :param deck:
+    :return:
+    """
+    cur = conn.cursor()
+    cur.execute(f"SELECT deck_id, deck FROM decks WHERE deck = '{deck}'")
 
     rows = cur.fetchall()
 

@@ -7,6 +7,7 @@
   "flashcards_generated": "Successfully generated flashcards. Do you want to open it in Anki?",
 
   "url_not_found": "URL not found. Please try again",
+  "select_deck": "Select a deck before proceeding.",
   "invalid_url": "Invalid URL. Please try again",
 
   "paste_here": "Paste word/expression url here",
@@ -14,7 +15,9 @@
   "paste_endpoint_url_here": "Paste Endpoint URL here",
   "chose_accent": "Select Pronunciation Accent",
   "tag_info": "Enter tags separated by space",
-  "sample_tags": "IELTS Phrasal_Verb Intermediate",
+  "deck_info": "Create/Select Deck",
+  "sample_decks": "ex: My Intermediate Vocabulary Deck",
+  "sample_tags": "ex: Phrasal_Verb Noun Idiom",
   "en_uk": "English (UK)",
   "en_us": "English (US)",
   "male": "Male",
@@ -27,7 +30,7 @@
   "merriam_webster": "Merriam-Webster",
   "oxford": "Oxford",
   "vocabulary_com": "Vocabulary.com",
-  "sample_url": "https://dictionary.cambridge.org/dictionary/english/water",
+  "sample_url": "ex: https://dictionary.cambridge.org/dictionary/english/water",
 
   "refresh_icon": "refresh",
   "back_icon": "arrow-left",
