@@ -1,6 +1,6 @@
 import logging
 import os
-os.environ["KIVY_NO_CONSOLELOG"] = "1"
+# os.environ["KIVY_NO_CONSOLELOG"] = "1"
 import subprocess
 import webbrowser
 from datetime import datetime as dt
@@ -9,10 +9,10 @@ import json
 import re
 import traceback
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s:%(levelname)s:%(message)s"
-)
+# logging.basicConfig(
+#     level=logging.DEBUG,
+#     format="%(asctime)s:%(levelname)s:%(message)s"
+# )
 
 import bs4
 import urllib3
@@ -960,7 +960,7 @@ class MyApp(MDApp):
             home_screen_instance = self.get_running_app().home_screen_instance
             if home_screen_instance.decks_menu:
                 home_screen_instance.decks_menu.dismiss()
-            print(home_screen.ids.deck_input.text)
+            # print(home_screen.ids.deck_input.text)
             self.open_deck_dropdown()
 
         if home_screen.ids.tags_input.focus:
@@ -1017,12 +1017,12 @@ class MyApp(MDApp):
         home_screen_instance = self.get_running_app().home_screen_instance
         menu_items = []
         typed_deck = home_screen.ids.deck_input.text
-        print("typed_deck:", typed_deck)
+        # print("typed_deck:", typed_deck)
         if not typed_deck:
             rows = select_all_decks(self.db_connection)
         else:
             rows = select_decks_which_contains(self.db_connection, typed_deck)
-        print(rows)
+        # print(rows)
         for row in rows:
             some_dict = {
                 "viewclass": "OneLineListItem",
@@ -1055,7 +1055,7 @@ class MyApp(MDApp):
         home_screen.ids.tags_input.text = tags + ' '
         home_screen_instance.tags_menu.dismiss()
         # todo: what about focus
-        home_screen.ids.tags_input.focus = True
+        # home_screen.ids.tags_input.focus = True
 
     def set_deck(self, deck):
         home_screen = self.root.get_screen("home_screen")
@@ -1064,7 +1064,7 @@ class MyApp(MDApp):
         home_screen.ids.deck_input.text = deck
         home_screen_instance.decks_menu.dismiss()
         # todo: what about focus
-        home_screen.ids.deck_input.focus = True
+        # home_screen.ids.deck_input.focus = True
 
     def on_selected(self):
         meanings_screen = self.root.get_screen("meanings_screen")

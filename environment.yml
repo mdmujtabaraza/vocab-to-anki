@@ -8,9 +8,9 @@ dependencies:
   - requests
   - genanki
   - gtts
-  - ibm-watson
   - validators
   - pip:
+      - ibm-watson
       - kivy[full]
       - kivymd
       - user_agent
