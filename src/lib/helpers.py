@@ -26,7 +26,7 @@ def get_root_path() -> str:
 
 def get_db_path() -> str:
     if is_platform('android'):  # if 'ANDROID_STORAGE' in os.environ:
-        path = f'/storage/emulated/0/Android/{get_text("app_title")}/'
+        path = f'/storage/emulated/0/{get_text("app_title")}/'
     else:  # platform == 'win'
         path = 'files/'
     if not os.path.exists(path):
