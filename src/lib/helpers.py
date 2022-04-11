@@ -1,8 +1,10 @@
 import os
 import re
+import sys
 
 from bs4.element import ResultSet, Tag
 from kivy import platform
+from kivy import user_home_dir
 
 from src.lib.strings import get_text
 
@@ -11,27 +13,47 @@ def is_platform(os_name) -> bool:
     return os_name == platform
 
 
-def get_root_path() -> str:
+# def resource_path(relative_path):
+#     """ Get the absolute path to the resource, works for dev and for PyInstaller """
+#     try:
+#         # PyInstaller creates a temp folder and stores path in _MEIPASS
+#         base_path = sys._MEIPASS
+#     except Exception:
+#         base_path = os.path.abspath(".")
+#         base_path = os.path.join(user_home_dir)
+#
+#     return os.path.join(base_path, relative_path)
+
+
+def get_root_path(db=False, media=False) -> str:
+    print("Home DIR:", user_home_dir)
+    print(db, media)
     if is_platform('android'):  # if 'ANDROID_STORAGE' in os.environ:
         from android.storage import app_storage_path
         # path = f'{app_storage_path()}/'
         package_name = app_storage_path().split('/')[-2]
-        path = f'/storage/emulated/0/Android/data/{package_name}/files/'
+        base_path = f'/storage/emulated/0/Android/data/{package_name}/files/'
+        if media:
+            base_path = f'/storage/emulated/0/Android/data/{package_name}/files/media/'
+        if db:
+            base_path = f'/storage/emulated/0/{get_text("app_title")}/'
     else:  # platform == 'win'
-        path = 'files/'
-    if not os.path.exists(path + 'media/'):
-        os.makedirs(path + 'media/')
-    return path
-
-
-def get_db_path() -> str:
-    if is_platform('android'):  # if 'ANDROID_STORAGE' in os.environ:
-        path = f'/storage/emulated/0/{get_text("app_title")}/'
-    else:  # platform == 'win'
-        path = 'files/'
-    if not os.path.exists(path):
-        os.makedirs(path)
-    return path
+        try:
+            # PyInstaller creates a temp folder and stores path in _MEIPASS
+            base_path = os.path.join(sys._MEIPASS, get_text("app_title"), 'files')
+            if media:
+                base_path = os.path.join(sys._MEIPASS, get_text("app_title"), 'files', 'media')
+        except Exception:
+            # base_path = os.path.abspath(".")
+            base_path = os.path.join(user_home_dir, get_text("app_title"), 'files')
+            if media:
+                base_path = os.path.join(user_home_dir, get_text("app_title"), 'files', 'media')
+        if db:
+            base_path = os.path.join(user_home_dir, get_text("app_title"))
+    if not os.path.exists(base_path):
+        os.makedirs(base_path)
+    print(base_path)
+    return base_path
 
 
 class SuspiciousOperation(Exception):

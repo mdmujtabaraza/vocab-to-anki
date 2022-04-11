@@ -344,7 +344,7 @@ class CambridgeSpider:
         # us_pronunciation = response.css(".us #ampaudio2 source::attr(src)").extract_first()  # amp-audio
 
         def download_audio(text: str, text_type: str = '') -> str:
-            root_path = get_root_path() + 'media/'
+            media_path = get_root_path(media=True)
             if text_type:
                 filename = get_valid_filename(word + f'_{text_type}_' + lang + '.mp3')
             else:
@@ -357,7 +357,7 @@ class CambridgeSpider:
                 ibm_endpoint_url = self.ibm_tuple[2]
                 ibm_tts = ibm_tts_authenticate(ibm_api_id, ibm_endpoint_url)
                 watson_voice = get_voice(ibm_tts, gender, watson_lang)
-                with open(root_path + filename, 'wb') as audio_file:
+                with open(os.path.join(media_path, filename), 'wb') as audio_file:
                     res = ibm_tts.synthesize(text, accept='audio/mp3', voice=watson_voice['name']).get_result()
                     audio_file.write(res.content)
             except:
@@ -365,8 +365,8 @@ class CambridgeSpider:
                     tts = gTTS(text, lang='en', tld=gtts_tld)
                 except:
                     tts = gTTS(word, lang='en', tld=gtts_tld)
-                if not os.path.exists(root_path + filename):
-                    tts.save(root_path + filename)
+                if not os.path.exists(os.path.join(media_path, filename)):
+                    tts.save(os.path.join(media_path, filename))
 
             # url = 'https://' + CambridgeSpider.allowed_domains[0] + address
             # http = urllib3.PoolManager(10, headers={'user-agent': USER_AGENT})

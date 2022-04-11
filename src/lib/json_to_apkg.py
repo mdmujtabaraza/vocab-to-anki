@@ -1,4 +1,5 @@
 import os
+import re
 import random
 from time import time
 from datetime import datetime as dt
@@ -104,15 +105,15 @@ class JsonToApkg:
             my_deck.add_note(note)
 
         # add media
-        root_path = get_root_path()
+        media_path = get_root_path(media=True)
         my_package = genanki.Package(my_deck)
-        my_package.media_files = [root_path + 'media/' + file for file in set(media_filenames)]
+        my_package.media_files = [os.path.join(media_path, file) for file in set(media_filenames)]
         # generate apkg
         # my_package.write_to_file('output-' + j_dict["word"] + '.apkg')
         # apkg_filename = 'output-' + dt.now().strftime("%Y%m%d%H%M%S") + '.apkg'
-        apkg_filename = 'output' + '.apkg'
-        # print('before writing')
-        my_package.write_to_file(root_path + apkg_filename)
+        root_path = get_root_path()
+        apkg_filename = 'output.apkg'
+        my_package.write_to_file(os.path.join(root_path, apkg_filename))
         return apkg_filename
 
     def generate_note(self, j_dict, tags):

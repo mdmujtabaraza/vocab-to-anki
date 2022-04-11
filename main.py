@@ -47,6 +47,9 @@
 # <paths  xmlns:android="http://schemas.android.com/apk/res/android">
 #     <external-path  name="external_files"  path="Android/data/org.test.vocabtoanki/files"  />
 # </paths>
+
+# pyinstaller --noconfirm --onedir --windowed --add-data "C:/Users/Standard User/miniconda3/envs/vocab-to-anki-app/Lib/site-packages/user_agent/data;user_agent/data/"  "C:/Users/Public/Documents/projects/python/vocab-to-anki/main.py"
+
 import os
 from glob import glob
 
@@ -64,12 +67,13 @@ def main():
         MyApp().get_running_app().db_connection.close()
     # Delete Files on exit.
     print('Cleaning up..')
-    root_path = get_root_path()
-    mp3_files = glob(root_path + 'media/*.mp3')
+    media_path = get_root_path(media=True)
+    mp3_files = glob(os.path.join(media_path, '*.mp3'))
     for f in mp3_files:
         os.remove(f)
-    if os.path.exists(root_path + 'output.apkg'):
-        os.remove(root_path + 'output.apkg')
+    root_path = get_root_path()
+    if os.path.exists(os.path.join(root_path, 'output.apkg')):
+        os.remove(os.path.join(root_path, 'output.apkg'))
     print('Cleaned.')
 
 

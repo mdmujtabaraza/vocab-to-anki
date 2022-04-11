@@ -59,8 +59,7 @@ from src.db import create_connection, create_table, create_tag, select_all_tags,
     update_globals_var, select_global_var_value, create_globals_var, select_all_decks, select_decks_which_contains, \
     create_deck, select_deck
 from src.dict_scraper.spiders import cambridge
-from src.lib.helpers import get_root_path, is_platform, check_android_permissions, request_android_permissions, \
-    get_db_path
+from src.lib.helpers import get_root_path, is_platform, check_android_permissions, request_android_permissions
 from src.lib.json_to_apkg import JsonToApkg
 from src.lib.strings import get_text
 
@@ -331,14 +330,13 @@ class HomeScreen(MDScreen):
         self.dialog.dismiss()
 
     def open_apkg(self, obj):
-        path = get_root_path()
-        apkg_filename = 'output' + '.apkg'
+        file_path = os.path.join(get_root_path(), 'output.apkg')
 
         # print(apkg_filename)
         # if platform.system() == 'Darwin':  # macOS
         #     subprocess.call(('open', path + apkg_filename))
         if is_platform('win'):  # Windows
-            os.startfile(os.path.join(path[:-1], apkg_filename))
+            os.startfile(file_path)
         else:  # linux variants
             try:
                 from jnius import cast
@@ -355,7 +353,7 @@ class HomeScreen(MDScreen):
                 currentActivity = cast('android.app.Activity', PythonActivity.mActivity)
                 ctx = currentActivity.getApplicationContext()
 
-                filePath = File(path + apkg_filename)
+                filePath = File(file_path)
                 uriApkg = FileProvider.getUriForFile(ctx, f"{ctx.getPackageName()}.file_provider", filePath)
                 urifromfile = Uri.fromFile(filePath)
                 parcelable = cast('android.os.Parcelable', urifromfile)
@@ -853,7 +851,7 @@ class MyApp(MDApp):
             return False
         if self.db_connection is not None:
             return True
-        db_path = f'{get_db_path()}data.db'
+        db_path = os.path.join(get_root_path(db=True), 'data.db')
         self.db_connection = create_connection(db_path)
         # https://stackoverflow.com/a/44951682
         sql_create_tags_table = """
