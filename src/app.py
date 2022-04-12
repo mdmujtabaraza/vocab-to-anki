@@ -720,7 +720,7 @@ class MeaningsScreen(MDScreen):
         home_screen_instance = MDApp.get_running_app().home_screen_instance
         # md_bg_color = self.theme_cls.primary_color
         # left_action_items = [["arrow-left", lambda x: self.get_running_app().soft_restart()]]
-        right_action_items = [[get_text("export_icon"), lambda x: home_screen_instance.confirm_generation()],
+        right_action_items = [[get_text("export_icon"), lambda x: home_screen_instance.confirm_generation(), "Export"],
                               [get_text("select_none_icon"), lambda x: self.deselect_all()]]
         self.ids.toolbar.right_action_items = right_action_items
         # meanings_screen.ids.toolbar.title = get_text("app_title")
@@ -780,6 +780,7 @@ class MyApp(MDApp):
         self.db_connection = None
 
     def build(self):
+        self.icon = "images/icon/vocabtoanki_1024x1024.png"
         Window.bind(on_keyboard=self._on_keyboard_handler)
         Window.bind(on_request_close=self.on_request_close)
         # sm.add_widget(HomeScreen(name='home_screen'))
@@ -1067,7 +1068,7 @@ class MyApp(MDApp):
     def on_selected(self):
         meanings_screen = self.root.get_screen("meanings_screen")
         export_button = \
-            [get_text("export_icon"), lambda x: self.get_running_app().home_screen_instance.confirm_generation()]
+            [get_text("export_icon"), lambda x: self.get_running_app().home_screen_instance.confirm_generation(), "Export"]
         if CONTAINER['m_checkboxes_selected'] == 0:
             meanings_screen.ids.toolbar.title = get_text("app_title")
             meanings_screen.ids.toolbar.anchor_title = 'center'

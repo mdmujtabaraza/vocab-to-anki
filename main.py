@@ -48,7 +48,12 @@
 #     <external-path  name="external_files"  path="Android/data/org.test.vocabtoanki/files"  />
 # </paths>
 
-# pyinstaller --noconfirm --onedir --windowed --add-data "C:/Users/Standard User/miniconda3/envs/vocab-to-anki-app/Lib/site-packages/user_agent/data;user_agent/data/"  "C:/Users/Public/Documents/projects/python/vocab-to-anki/main.py"
+# pyinstaller --noconfirm --name vocabtoanki --icon "C:/Users/Public/Documents/projects/python/vocab-to-anki/icons/vocabtoanki_512x512.png" --onedir --windowed --add-data "C:/Users/Standard User/miniconda3/envs/vocab-to-anki/Lib/site-packages/user_agent/data;user_agent/data/"  "C:/Users/Public/Documents/projects/python/vocab-to-anki/main.py"
+# --onefile --onedir --icon examples-path\demo\touchtracer\icon.ico --key='<16 chars>' --name vocabtoanki
+# exe, Tree('C:\\Users\\Public\\Documents\\projects\\python\\vocab-to-anki\\'),
+# python -m PyInstaller vocabtoanki.spec
+
+# convert -background transparent "vocabtoanki_512x512.png" -define icon:auto-resize=16,24,32,48,64,72,96,128,256 "vocabtoanki.ico"
 
 import os
 from glob import glob

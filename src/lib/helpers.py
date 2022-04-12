@@ -27,7 +27,6 @@ def is_platform(os_name) -> bool:
 
 def get_root_path(db=False, media=False) -> str:
     print("Home DIR:", user_home_dir)
-    print(db, media)
     if is_platform('android'):  # if 'ANDROID_STORAGE' in os.environ:
         from android.storage import app_storage_path
         # path = f'{app_storage_path()}/'
@@ -52,7 +51,6 @@ def get_root_path(db=False, media=False) -> str:
             base_path = os.path.join(user_home_dir, get_text("app_title"))
     if not os.path.exists(base_path):
         os.makedirs(base_path)
-    print(base_path)
     return base_path
 
 
