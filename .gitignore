@@ -129,6 +129,7 @@ dmypy.json
 .pyre/
 
 # Custom
+.idea/
 example_README.md
 files/
 output/
