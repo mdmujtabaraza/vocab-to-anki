@@ -135,4 +135,3 @@ output/
 !src/lib/
 !src/android/lib/
 !buildozer.spec
-!vocabtoanki.spec

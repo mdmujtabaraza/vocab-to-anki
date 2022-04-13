@@ -7,13 +7,13 @@ title = Vocab to Anki
 package.name = vocabtoanki
 
 # (str) Package domain (needed for android/ios packaging)
-package.domain = org.test
+package.domain = tech.mdmujtaba
 
 # (str) Source code where the main.py live
 source.dir = .
 
 # (list) Source files to include (let empty to include all the files)
-source.include_exts = py,png,jpg,kv,atlas,cfg,gitignore,txt,yml,mp3,apkg,json
+source.include_exts = py,png,jpg,kv,atlas,cfg,gitignore,txt,yml,mp3,apkg,json,svg,ico
 
 # (list) List of inclusions using pattern matching
 #source.include_patterns = assets/*,images/*.png
@@ -29,7 +29,7 @@ source.include_exts = py,png,jpg,kv,atlas,cfg,gitignore,txt,yml,mp3,apkg,json
 #source.exclude_patterns = license,images/*/*.jpg
 
 # (str) Application versioning (method 1)
-version = 0.1
+version = 1.0.0
 
 # (str) Application versioning (method 2)
 # version.regex = __version__ = ['"](.*)['"]
@@ -39,17 +39,15 @@ version = 0.1
 # comma separated e.g. requirements = sqlite3,kivy
 requirements = python3,android,pyjnius,beautifulsoup4,brotlipy,cached-property,certifi,cffi,charset-normalizer,chevron,click,colorama,cryptography,decorator,docutils,frozendict,genanki,gTTS,ibm-cloud-sdk-core,ibm-watson,idna,Kivy,Kivy-Garden,kivymd,lxml,Pillow,pip,pycparser,Pygments,PyJWT,pyOpenSSL,PySocks,python-dateutil,PyYAML,requests,setuptools,six,soupsieve,urllib3,user-agent,validators,websocket-client,wheel
 
-# beautifulsoup4==4.10.0,brotlipy==0.7.0,cached-property==1.5.2,certifi==2021.10.8,cffi==1.15.0,charset-normalizer==2.0.12,chevron==0.14.0,click==8.1.2,colorama==0.4.4,cryptography==36.0.2,decorator==5.1.1,docutils==0.18.1,frozendict==2.3.0,genanki==0.13.0,gTTS==2.2.4,idna==3.3,Kivy==2.1.0,kivy-deps.angle==0.3.2,kivy-deps.glew==0.3.1,kivy-deps.gstreamer==0.3.3,kivy-deps.sdl2==0.4.5,Kivy-Garden==0.1.5,kivymd==0.104.2,Pillow==9.0.1,pip==22.0.4,pycparser==2.21,Pygments==2.11.2,pyOpenSSL==22.0.0,pypiwin32==223,PySocks==1.7.1,pywin32==303,PyYAML==6.0,requests==2.27.1,setuptools==61.3.0,six==1.16.0,soupsieve==2.3.1,urllib3==1.26.9,validators==0.18.2,wheel==0.37.1,win-inet-pton==1.1.0
-
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes
 # requirements.source.kivy = ../../kivy
 
 # (str) Presplash of the application
-#presplash.filename = %(source.dir)s/data/presplash.png
+presplash.filename = images/icon/vocabtoanki_512x512.png
 
 # (str) Icon of the application
-#icon.filename = %(source.dir)s/data/icon.png
+icon.filename = images/icon/vocabtoanki_512x512.png
 
 # (str) Supported orientation (one of landscape, sensorLandscape, portrait or all)
 orientation = portrait
@@ -82,7 +80,7 @@ fullscreen = 0
 # red, blue, green, black, white, gray, cyan, magenta, yellow, lightgray,
 # darkgray, grey, lightgrey, darkgrey, aqua, fuchsia, lime, maroon, navy,
 # olive, purple, silver, teal.
-#android.presplash_color = #FFFFFF
+android.presplash_color = #000000
 
 # (string) Presplash animation using Lottie format.
 # see https://lottiefiles.com/ for examples and https://airbnb.design/lottie/

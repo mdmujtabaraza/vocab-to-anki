@@ -1,4 +1,5 @@
 #:import choice random.choice
+#:import open webbrowser.open
 
 #:import Clipboard kivy.core.clipboard.Clipboard
 #:import Window kivy.core.window.Window
@@ -38,7 +39,7 @@ ScreenManager:
             title: get_text("app_title")
             anchor_title: 'center'
             left_action_items: [[get_text("settings_icon"), lambda x: app.get_running_app().change_screen("settings_screen")]]
-            right_action_items: [[get_text("github_icon"), lambda x: app.get_running_app().restart()]]
+            right_action_items: [[get_text("github_icon"), lambda x: open("https://github.com/mdmujtabaraza/vocab-to-anki")]]
             elevation: 10
         FloatLayout:
             # MDFlatButton:
@@ -81,12 +82,6 @@ ScreenManager:
                 size_hint: (.75, .1)
                 pos_hint: {'center_x': 0.45, 'center_y': 0.68}
                 on_focus: root.tags_input_focus_mode(self.focus)
-            MDRaisedButton:
-                id: dict_dropdown
-                text: get_text("browse_button")
-                font_style: 'Button'
-                pos_hint: {"center_x": 0.5, 'center_y': 0.52}
-                on_release: root.open_dictionary_dropdown()
             MDTextField:
                 id: word_input
                 # text: get_text("sample_url")[4:]
@@ -96,11 +91,17 @@ ScreenManager:
                 helper_text: get_text('sample_url')
                 helper_text_mode: "on_focus"
                 size_hint: (.75, .1)
-                pos_hint: {'center_x': 0.45, 'center_y': 0.38}
+                pos_hint: {'center_x': 0.45, 'center_y': 0.52}
             MDIconButton:
                 icon: get_text('paste_icon')
-                pos_hint: {"center_x": .9, "center_y": .38}
+                pos_hint: {"center_x": .9, "center_y": .52}
                 on_release: word_input.text = Clipboard.paste()
+            MDRaisedButton:
+                id: dict_dropdown
+                text: get_text("browse_button")
+                font_style: 'Button'
+                pos_hint: {"center_x": 0.5, 'center_y': 0.32}
+                on_release: root.open_dictionary_dropdown()
             MDRectangleFlatButton:
                 text: get_text("generate_flashcards")
                 font_style: 'Button'
@@ -118,7 +119,7 @@ ScreenManager:
             id: toolbar
             title: get_text("app_title")
             anchor_title: 'center'
-            left_action_items: [[get_text("update_icon"), lambda x: app.get_running_app().change_screen("home_screen")]]
+            left_action_items: [[get_text("update_icon"), lambda x: open("https://github.com/mdmujtabaraza/vocab-to-anki/releases")]]
             right_action_items: [[get_text("home_icon"), lambda x: root.save_settings()]]
             elevation: 10
         MDFloatLayout:
