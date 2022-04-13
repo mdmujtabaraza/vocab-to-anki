@@ -39,9 +39,9 @@ def get_root_path(db=False, media=False) -> str:
     else:  # platform == 'win'
         try:
             # PyInstaller creates a temp folder and stores path in _MEIPASS
-            base_path = os.path.join(sys._MEIPASS, get_text("app_title"), 'files')
+            base_path = os.path.join(sys._MEIPASS, 'files')
             if media:
-                base_path = os.path.join(sys._MEIPASS, get_text("app_title"), 'files', 'media')
+                base_path = os.path.join(sys._MEIPASS, 'files', 'media')
         except Exception:
             # base_path = os.path.abspath(".")
             base_path = os.path.join(user_home_dir, get_text("app_title"), 'files')
